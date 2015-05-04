@@ -26,6 +26,32 @@ To build, run `docker build --rm --tag=hmda/grasshopper-parser .`
 
 A container can be started by running `docker run -ti -p 5000:5000 hmda/grasshopper-parser`
 
+## Usage
+Send a POST request to /addresses/parse with a JSON object containing the addres to be parsed:
+
+```json
+{
+  "address": "1311 30th st washington dc 20007"
+}
+
+```
+
+The service should respond with the address components, in JSON format:
+
+```json
+{
+  "inputAddress": "1311 30th st washington dc 20007",
+  "parsedAddress": {
+    "AddressNumber": "1311",
+    "PlaceName": "washington",
+    "StateName": "dc",
+    "StreetName": "30th",
+    "StreetNamePostType": "st",
+    "ZipCode": "20007"
+   }
+}
+```
+
 
 ## Getting involved
 
