@@ -24,6 +24,8 @@ INVALID_ADDR_PARTS = [
         'USPSBoxType',
     ]
 
+UP_SINCE = datetime.now(pytz.utc).isoformat()
+
 
 def parse_with_parse(addr_str):
     """
@@ -113,6 +115,7 @@ def status():
             "status" : "OK",
             "time" : datetime.now(pytz.utc).isoformat(),
             "host" : platform.node(),
+            "upSince" : UP_SINCE,
         }
 
     return jsonify(status)
