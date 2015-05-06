@@ -3,7 +3,7 @@
 # A container can be started by running docker run -ti -p 5000:5000 hmda/grasshopper-parser
 
 FROM python:2.7.9-onbuild
-MAINTAINER Juan Marin Otero <juan.marin.otero@gmail.com>
+MAINTAINER Hans Keeler <hans.keeler@cfpb.gov>
 
 EXPOSE 5000
 
