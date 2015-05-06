@@ -18,11 +18,11 @@ quite simple to build and launch.
 
 1. Build it.
 
-    pip install -r requirements.txt
+        pip install -r requirements.txt
 
 1. Run it.
 
-    python app/app.py
+        python app/app.py
 
 
 ### Docker
@@ -31,11 +31,11 @@ The service can also be run on Docker.
 
 1. Build it.
 
-    docker build --rm --tag=hmda/grasshopper-parser .
+        docker build --rm --tag=hmda/grasshopper-parser .
 
 1. Run it.
 
-    docker run -ti -p 5000:5000 hmda/grasshopper-parser
+        docker run -ti -p 5000:5000 hmda/grasshopper-parser
 
 ## Usage
 
@@ -53,10 +53,10 @@ Displays the current state of the API.
 
 ```json
 {
-    host: "yourhost.local",
-    status: "OK",
-    time: "2015-05-06T19:14:19.304850+00:00",
-    upSince: "2015-05-06T19:08:26.568966+00:00"
+    "host": "yourhost.local",
+    "status": "OK",
+    "time": "2015-05-06T19:14:19.304850+00:00",
+    "upSince": "2015-05-06T19:08:26.568966+00:00"
 }
 ```
 
@@ -73,8 +73,7 @@ JSON attributes via `HTTP POST`.
 * **`method`:** (Optional) [usaddress parsing method](http://usaddress.readthedocs.org/en/latest/#usage)
     to be used to split `address` into its component parts.
 
-    Supported Values:
-
+    Values:
     * `parse` (Default)
     * `tag`
 
@@ -82,8 +81,7 @@ JSON attributes via `HTTP POST`.
     either too few parts to be considered complete, or contains parts we do not
     allow (such as P.O. Box addresses).
 
-    Supported Values:
-
+    Values:
     * `false` (Default)
     * `true`
 
@@ -91,7 +89,6 @@ JSON attributes via `HTTP POST`.
 #### Request
 
     GET http://localhost:5000/parse\?address\=1311+30th+st+washington+dc+20007
-
 
 OR
 
