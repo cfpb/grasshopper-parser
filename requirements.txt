@@ -1,0 +1,4 @@
+flask==0.10.1
+pytz==2015.2
+usaddress==0.4.6
+
