@@ -1,38 +1,49 @@
-# Grasshopper Parser
+# Grasshopper Address Parser
 
 US Address parser for the [Grasshopper](https://github.com/cfpb/grasshopper) project.
 Provides a simple microservice that breaks an address string into its components.
 
-## Installation
+## Requirements
 
-This service depends on the [Flask Microframework](http://flask.pocoo.org/) and the [US Address parsing library](https://github.com/datamade/usaddress)
-To install these dependencies, run the following from your Python environment:
+* [Flask](http://flask.pocoo.org/) - Python HTTP microframework
+* [US Address parsing library](https://github.com/datamade/usaddress) - Python
+    library for parsing US addresses using natural language processing (NLP) methods.
 
+## Build and Deploy
 
-    pip install -r requirements.txt 
+grasshopper-parser is a standard Python app with few dependencies, making it
+quite simple to build and launch.
 
+### Locally
 
-## Running
+1. Build it.
 
-The service can be run directly from the root directory by issuing the following command:
+    pip install -r requirements.txt
+
+1. Run it.
 
     python app/app.py
 
 
-Alternatively, this microservice can be run with Docker:
+### Docker
 
-To build, run `docker build --rm --tag=hmda/grasshopper-parser .`
+The service can also be run on Docker.
 
-A container can be started by running `docker run -ti -p 5000:5000 hmda/grasshopper-parser`
+1. Build it.
+
+    docker build --rm --tag=hmda/grasshopper-parser .
+
+1. Run it.
+
+    docker run -ti -p 5000:5000 hmda/grasshopper-parser
 
 ## Usage
 
-The following resources are available.  All examples assume running on
-`localhost`, port `5000`.
+The following resources are available.  All examples assume running on `localhost`, port `5000`.
 
 ### `/status`
 
-The `/status` resource simply displays the current state of the API
+Displays the current state of the API.
 
 #### Request
 
@@ -52,7 +63,7 @@ The `/status` resource simply displays the current state of the API
 ### `/parse`
 
 The `/parse` resource is the heart of this API.  It parses a free-text address
-strings into their component parts.  This service currently uses 
+strings into their component parts. 
 
 The following options are available via both `HTTP GET` query paramaters or
 JSON attributes via `HTTP POST`.
