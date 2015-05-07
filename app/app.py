@@ -100,7 +100,9 @@ app = Flask(__name__)
 @app.route('/explode', methods=['GET'])
 def explode():
     """
-    Used for testing error handler.  REMOVE ONCE TESTED KEEP!!!
+    Used for testing error handler.
+
+    NOTE: This resouce will probably be once automated testing in place
     """
     raise ValueError('Hey!  Don\'t do that!')
 
