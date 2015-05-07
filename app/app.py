@@ -102,7 +102,7 @@ def explode():
     """
     Used for testing error handler.
 
-    NOTE: This resouce will probably be once automated testing in place
+    NOTE: This resouce will probably be removed once automated testing in place
     """
     raise ValueError('Hey!  Don\'t do that!')
 
