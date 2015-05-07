@@ -88,7 +88,7 @@ JSON attributes via `HTTP POST`.
 
 #### Request
 
-    GET http://localhost:5000/parse\?address\=1311+30th+st+washington+dc+20007
+    GET http://localhost:5000/parse?address=1311+30th+st+washington+dc+20007
 
 OR
 
