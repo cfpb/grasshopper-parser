@@ -9,20 +9,20 @@ import usaddress
 
 # Parsed addresses MUST have these part types to be "valid"
 # See: http://usaddress.readthedocs.org/en/latest/#details
-REQ_ADDR_PARTS = [
+REQ_ADDR_PARTS = set([
     'AddressNumber',
     'PlaceName',
     'StateName',
     'ZipCode',
-]
+])
 
 # Parsed addresses must NOT have these part types to be "valid"
-INVALID_ADDR_PARTS = [
+INVALID_ADDR_PARTS = set([
     'USPSBoxGroupID',
     'USPSBoxGroupType',
     'USPSBoxID',
     'USPSBoxType',
-]
+])
 
 UP_SINCE = datetime.now(pytz.utc).isoformat()
 
@@ -59,21 +59,21 @@ def parse_with_tag(addr_str):
     return addr_parts
 
 
-def validate_parse_results(addr_parts):
+def validate_parse_results(addr_parts, required=REQ_ADDR_PARTS, invalid=INVALID_ADDR_PARTS):
     """
     Validates address parts list has all required part types, and no invalid types.
     """
-    parsed_types = addr_parts.keys()
+    parsed_types = set(addr_parts.keys())
 
-    missing = [part_type for part_type in REQ_ADDR_PARTS if part_type not in parsed_types]
-
-    if missing:
-        raise InvalidApiUsage('Could not parse required address part(s): {}'.format(missing))
-
-    invalid = [part_type for part_type in INVALID_ADDR_PARTS if part_type in parsed_types]
+    invalid = parsed_types & invalid 
 
     if invalid:
-        raise InvalidApiUsage('Parsed address contained invalid address part(s): {}'.format(invalid))
+        raise InvalidApiUsage('Parsed address includes invalid address part(s): {}'.format(list(invalid)))
+
+    missing = required - parsed_types
+
+    if missing:
+        raise InvalidApiUsage('Parsed address does not include required address part(s): {}'.format(list(missing)))
 
 
 # Maps `method` param to corresponding parse function
