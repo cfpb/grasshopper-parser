@@ -2,7 +2,7 @@
 Flask-based REST API for parsing address string into its component parts
 """
 from datetime import datetime
-from flask import abort, Flask, jsonify, make_response, request
+from flask import Flask, jsonify, request
 import platform
 import pytz
 import usaddress
@@ -10,19 +10,19 @@ import usaddress
 # Parsed addresses MUST have these part types to be "valid"
 # See: http://usaddress.readthedocs.org/en/latest/#details
 REQ_ADDR_PARTS = [
-        'AddressNumber',
-        'PlaceName',
-        'StateName',
-        'ZipCode',
-    ]
+    'AddressNumber',
+    'PlaceName',
+    'StateName',
+    'ZipCode',
+]
 
 # Parsed addresses must NOT have these part types to be "valid"
 INVALID_ADDR_PARTS = [
-        'USPSBoxGroupID',
-        'USPSBoxGroupType',
-        'USPSBoxID',
-        'USPSBoxType',
-    ]
+    'USPSBoxGroupID',
+    'USPSBoxGroupType',
+    'USPSBoxID',
+    'USPSBoxType',
+]
 
 UP_SINCE = datetime.now(pytz.utc).isoformat()
 
@@ -37,7 +37,7 @@ def parse_with_parse(addr_str):
     parsed = usaddress.parse(addr_str)
 
     # Converted tuple array to dict
-    addr_parts = {addr_part[1]:addr_part[0] for addr_part in parsed}
+    addr_parts = {addr_part[1]: addr_part[0] for addr_part in parsed}
 
     return addr_parts
 
@@ -53,7 +53,7 @@ def parse_with_tag(addr_str):
         # `tag` returns OrderedDict, ordered by address parts in original address string
         addr_parts = usaddress.tag(addr_str)[0]
     except usaddress.RepeatedLabelError as e:
-        # FIXME: Add richer logging here
+        # FIXME: Add richer logging here with contents of `e`
         raise InvalidApiUsage("Could not parse address '{}' with 'tag' method".format(addr_str))
 
     return addr_parts
@@ -77,14 +77,15 @@ def validate_parse_results(addr_parts):
 
 
 # Maps `method` param to corresponding parse function
-parse_method_dispatch = {'parse' : parse_with_parse, 'tag' : parse_with_tag}
+parse_method_dispatch = {'parse': parse_with_parse, 'tag': parse_with_tag}
 
 
 class InvalidApiUsage(Exception):
     """
     Exception for invalid usage of address parsing API
 
-    This is a simplifiled version of 
+    This is a simplifiled Flask's Implementing API Exceptions:
+    See: http://flask.pocoo.org/docs/0.10/patterns/apierrors/
     """
     status_code = 400
 
@@ -96,6 +97,7 @@ class InvalidApiUsage(Exception):
 
 
 app = Flask(__name__)
+
 
 @app.route('/explode', methods=['GET'])
 def explode():
@@ -114,11 +116,11 @@ def status():
     """
 
     status = {
-            "status" : "OK",
-            "time" : datetime.now(pytz.utc).isoformat(),
-            "host" : platform.node(),
-            "upSince" : UP_SINCE,
-        }
+        "status": "OK",
+        "time": datetime.now(pytz.utc).isoformat(),
+        "host": platform.node(),
+        "upSince": UP_SINCE,
+    }
 
     return jsonify(status)
 
@@ -140,11 +142,11 @@ def parse():
         raise InvalidApiUsage("'address' not present in request.")
 
     method = req_data.get('method', 'parse')
-    
+
     # FIXME: Make this smarter.  Works as expected for JSON, but not GET param
     #        May want to use Flask-RESTful, which has richer param parsing
     validate = req_data.get('validate', False)
-    
+
     try:
         addr_parts = parse_method_dispatch[method](addr_str)
     except KeyError:
@@ -155,14 +157,14 @@ def parse():
 
     response = {
         'input': addr_str,
-        'parts': addr_parts 
+        'parts': addr_parts
     }
 
     return jsonify(response)
 
 
 def gen_error_json(message, code):
-    return jsonify({'error' : message, 'statusCode' : code}), code
+    return jsonify({'error': message, 'statusCode': code}), code
 
 
 @app.errorhandler(InvalidApiUsage)
@@ -177,10 +179,9 @@ def not_found_error(error):
 
 @app.errorhandler(Exception)
 def default_error(error):
-    # FIXME: This should be scrubbed 
+    # FIXME: This should be scrubbed
     return gen_error_json(str(error), 500)
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',debug=True)
-
+    app.run(host='0.0.0.0', debug=True)

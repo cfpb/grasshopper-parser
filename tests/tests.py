@@ -2,7 +2,7 @@ from flask import json
 from nose.tools import assert_equals, assert_true
 import app
 
-class TestUnit(object):
+class TestIntegration(object):
 
     def setup(self):
         app.app.config['TESTING'] = True
@@ -22,6 +22,7 @@ class TestUnit(object):
         # Test
         rv = self.app.get('/status')
         data = json.loads(rv.data)
+
         assert_equals(data['status'], status)
         assert_equals(data['host'], host)
         assert_equals(data['upSince'], up_since)
