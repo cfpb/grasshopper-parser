@@ -59,18 +59,18 @@ def parse_with_tag(addr_str):
     return addr_parts
 
 
-def validate_parse_results(addr_parts, required=REQ_ADDR_PARTS, invalid=INVALID_ADDR_PARTS):
+def validate_parse_results(addr_parts, req_addr_parts=REQ_ADDR_PARTS, invalid_addr_parts=INVALID_ADDR_PARTS):
     """
     Validates address parts list has all required part types, and no invalid types.
     """
     parsed_types = set(addr_parts.keys())
 
-    invalid = parsed_types & invalid 
+    invalid = parsed_types & invalid_addr_parts
 
     if invalid:
         raise InvalidApiUsage('Parsed address includes invalid address part(s): {}'.format(list(invalid)))
 
-    missing = required - parsed_types
+    missing = req_addr_parts - parsed_types
 
     if missing:
         raise InvalidApiUsage('Parsed address does not include required address part(s): {}'.format(list(missing)))
