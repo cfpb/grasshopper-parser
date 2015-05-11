@@ -4,14 +4,13 @@ Unit and integration tests for grasshopper-parser
 import app
 from flask import json
 from nose.tools import assert_equals, assert_true
-from pprint import pformat, pprint
+
 
 class TestIntegration(object):
 
     def setup(self):
         app.app.config['TESTING'] = True
         self.app = app.app.test_client()
-
 
     def test_status(self):
         """
@@ -37,14 +36,12 @@ class TestIntegration(object):
         assert_true(data['time'] > time)
         assert_true(data['time'] > data['upSince'])
 
-
     @app.app.route('/explode', methods=['GET'])
     def explode():
         """
         Simulates an internal (uncaught) error
         """
         raise ValueError("Hey!  Don't do that!")
-
 
     def test_internal_error(self):
         """
@@ -57,8 +54,6 @@ class TestIntegration(object):
         assert_equals(500, rv.status_code)
         assert_equals(500, data['statusCode'])
         assert_equals("Hey!  Don't do that!", data['error'])
-
-
 
     def test_parse_success(self):
         """
@@ -82,7 +77,7 @@ class TestIntegration(object):
         assert_equals(200, status_code)
 
         assert_equals(data['input'], address)
-        
+
         parts = data['parts']
 
         # WARN: These asserts have the potential to fail if we retrain the parser
@@ -93,7 +88,6 @@ class TestIntegration(object):
         assert_equals(parts['StreetNamePostDirectional'], street_direction)
         assert_equals(parts['StreetNamePostType'], street_type)
         assert_equals(parts['ZipCode'], zip)
-
 
     def test_parse_fail_no_address(self):
         """
@@ -108,7 +102,6 @@ class TestIntegration(object):
 
         assert_equals("'address' not present in request.", data['error'])
 
-
     def test_parse_with_method_tag(self):
         """
         /parse - 200 with 'method=tag'
@@ -120,10 +113,9 @@ class TestIntegration(object):
         rv = self.app.get('/parse?address={}&method=tag'.format(address))
         assert_equals(200, rv.status_code)
 
-
-    def test_parse_with_method_tag_fail_repeated_label_error(self):        
+    def test_parse_with_method_tag_fail_repeated_label_error(self):
         """
-        /parse - 400 with 'method=tag' and 
+        /parse - 400 with 'method=tag' and address that raises RepeatedLabelError
         """
         # Setup
         address = '1234 Main St. 1234 Main St., Sacramento, CA 95818'
@@ -136,7 +128,6 @@ class TestIntegration(object):
         assert_equals(400, data['statusCode'])
         assert_equals("Could not parse address '{}' with 'tag' method".format(address), data['error'])
 
-
     def test_parse_with_method_parse(self):
         """
         /parse - 200 with 'method=parse'
@@ -147,7 +138,6 @@ class TestIntegration(object):
         # Test
         rv = self.app.get('/parse?address={}&method=parse'.format(address))
         assert_equals(200, rv.status_code)
-
 
     def test_parse_with_method_invalid(self):
         """
@@ -165,7 +155,6 @@ class TestIntegration(object):
         assert_equals(400, data['statusCode'])
         assert_equals("Parsing method '{}' not supported.".format(bad_method), data['error'])
 
-
     def test_parse_with_validate_success(self):
         """
         /parse - 200 with 'validate=true' and valid address
@@ -177,7 +166,6 @@ class TestIntegration(object):
         rv = self.app.get('/parse?address={}&validate=true'.format(address))
 
         assert_equals(200, rv.status_code)
-
 
     def test_parse_with_validate_fail_incomplete(self):
         """
@@ -194,7 +182,6 @@ class TestIntegration(object):
         assert_equals(400, data['statusCode'])
         assert_equals("Parsed address does not include required address part(s): ['ZipCode']", data['error'])
 
-
     def test_parse_with_validate_fail_invalid_parts(self):
         """
         /parse - 400 with 'validate=true' and invalid address
@@ -209,4 +196,3 @@ class TestIntegration(object):
         assert_equals(400, rv.status_code)
         assert_equals(400, data['statusCode'])
         assert_true(data['error'].startswith("Parsed address includes invalid address part(s): ['USPSBox"))
-
