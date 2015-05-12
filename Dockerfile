@@ -7,4 +7,5 @@ MAINTAINER Hans Keeler <hans.keeler@cfpb.gov>
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+CMD ["gunicorn", "-c", "conf/gunicorn.py", "-b", "0.0.0.0:5000", "app:app"]
+
