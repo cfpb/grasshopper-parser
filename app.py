@@ -52,8 +52,8 @@ def parse_with_tag(addr_str):
         # FIXME: Consider using `tag()`'s address type for validation?
         # `tag` returns OrderedDict, ordered by address parts in original address string
         addr_parts = usaddress.tag(addr_str)[0]
-    except usaddress.RepeatedLabelError as e:
-        # FIXME: Add richer logging here with contents of `e`
+    except usaddress.RepeatedLabelError:
+        # FIXME: Add richer logging here with contents of `rle`
         raise InvalidApiUsage("Could not parse address '{}' with 'tag' method".format(addr_str))
 
     return addr_parts
