@@ -175,12 +175,22 @@ If you'd like to include test coverage with your tests:
  
 To adjust the `flake8` settings, edit the `[flake8]` section of `tox.ini`.
 
+    [flake8]
+    exclude = .git,.tox
+    format = pylint
+    max-line-length = 160
+    max-complexity = 10
+    show-source = 1
+
 ### Do-it-all
 
 To execute all of the above mentioned tools in one fell swoop, and simulate the
-full test suite executed by our [Travis CI cfpb/grasshopper-parser](https://travis-ci.org/cfpb/grasshopper-parser) job:
+full test suite executed by our [Travis CI cfpb/grasshopper-parser](https://travis-ci.org/cfpb/grasshopper-parser),
+you can also use `tox`:
 
     tox
+
+All `tox` settings can be found in `tox.ini`.
 
 
 ## Getting involved
