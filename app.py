@@ -84,7 +84,7 @@ class InvalidApiUsage(Exception):
     """
     Exception for invalid usage of address parsing API
 
-    This is a simplifiled Flask's Implementing API Exceptions:
+    This is a simplifiled version of Flask's Implementing API Exceptions:
     See: http://flask.pocoo.org/docs/0.10/patterns/apierrors/
     """
     status_code = 400
