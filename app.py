@@ -115,16 +115,13 @@ def status():
     return jsonify(status)
 
 
-@app.route('/parse', methods=['GET', 'POST'])
+@app.route('/parse', methods=['GET'])
 def parse():
     """
     Parses an address string into its component parts
     """
 
-    if request.method == 'GET':
-        req_data = request.args
-    elif request.method == 'POST':
-        req_data = request.json
+    req_data = request.args
 
     try:
         addr_str = req_data['address']
