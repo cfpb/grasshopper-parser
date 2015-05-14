@@ -1,7 +1,7 @@
 # Grasshopper Address Parser
 
 [![Build Status](https://travis-ci.org/cfpb/grasshopper-parser.svg)](https://travis-ci.org/cfpb/grasshopper-parser) 
-[![Coverage Status](https://coveralls.io/repos/cfpb/grasshopper-parser/badge.svg)](https://coveralls.io/r/cfpb/grasshopper-parser)
+[![Coverage Status](https://coveralls.io/repos/cfpb/grasshopper-parser/badge.svg?branch=master)](https://coveralls.io/r/cfpb/grasshopper-parser?branch=master)
 
 US Address parser for the [Grasshopper](https://github.com/cfpb/grasshopper) project.
 Provides a simple microservice that breaks an address string into its components.
