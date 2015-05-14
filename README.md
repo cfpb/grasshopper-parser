@@ -24,9 +24,15 @@ quite simple to build and launch.
         pip install -r requirements.txt
 
 1. Run it.
+    * [Flask Dev Server](http://flask.pocoo.org/docs/0.10/server/)
 
-        python app/app.py
 
+            python app.py
+
+    * ...or [Gunicorn](http://gunicorn.org/)
+
+
+            gunicorn -c conf/gunicorn.py -b localhost:5000 app:app
 
 ### Docker
 
