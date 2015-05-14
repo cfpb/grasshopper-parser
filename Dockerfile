@@ -7,4 +7,4 @@ MAINTAINER Hans Keeler <hans.keeler@cfpb.gov>
 
 EXPOSE 5000
 
-CMD ["python", "./app/app.py"]
+CMD ["python", "app.py"]

@@ -1,5 +1,8 @@
 # Grasshopper Address Parser
 
+[![Build Status](https://travis-ci.org/cfpb/grasshopper-parser.svg)](https://travis-ci.org/cfpb/grasshopper-parser) 
+[![Coverage Status](https://coveralls.io/repos/cfpb/grasshopper-parser/badge.svg)](https://coveralls.io/r/cfpb/grasshopper-parser)
+
 US Address parser for the [Grasshopper](https://github.com/cfpb/grasshopper) project.
 Provides a simple microservice that breaks an address string into its components.
 
@@ -114,6 +117,83 @@ http://localhost:5000/parse
   }
 }
 ```
+
+## Testing
+
+This project uses the [Flask Testing](http://flask.pocoo.org/docs/0.10/testing/) tools, which really uses a
+[Werkzeug Test Client](http://werkzeug.pocoo.org/docs/0.10/test/#werkzeug.test.Client) under
+the hood.  In addition, we're using
+[nose](https://nose.readthedocs.org/en/latest/) as the unittesting framework,
+[coverage](http://nedbatchelder.com/code/coverage/) for test coverage,
+[flake8](http://flake8.readthedocs.org/en/latest/index.html) for code quality,
+and [tox](https://tox.readthedocs.org/en/latest/) to glue it all together.
+
+
+### Prerequisite
+
+In order to use these tools, you will first need to install:
+
+    pip install -r tests/requirements.txt
+
+### Unit Testing
+
+All unit tests are in the [`tests`]() directory.  To run them:
+
+    $ nosetests -vs
+
+...which should get you something similar to:
+
+    /explode - 500 on internal error ... ok
+    /parse - 400 with 'address' param is not present ... ok
+    /parse - 200 with just address, and parses correctly ... ok
+    ...
+    /status - simple request ... ok
+
+    ----------------------------------------------------------------------
+    Ran 11 tests in 0.089s
+
+### Test Coverage
+
+If you'd like to include test coverage with your tests:
+
+    nosetests -vs --with-coverage --cover-package=app
+
+...resulting in a report like:
+
+    Name    Stmts   Miss  Cover   Missing
+    -------------------------------------
+    app        67      2    97%   96, 127
+    ----------------------------------------------------------------------
+    Ran 11 tests in 0.115s
+
+
+### Code Quality
+
+[flake8](https://flake8.readthedocs.org/en/2.4.0/#) is a wrapper code quality tools 
+[pep8](http://pep8.readthedocs.org/en/latest/), 
+[pyflakes](https://github.com/pyflakes/pyflakes/), and 
+[mccabe](https://github.com/flintwork/mccabe). To run `flake8`:
+
+    flake8
+ 
+To adjust the `flake8` settings, edit the `[flake8]` section of `tox.ini`.
+
+    [flake8]
+    exclude = .git,.tox
+    format = pylint
+    max-line-length = 160
+    max-complexity = 10
+    show-source = 1
+
+### Do-it-all
+
+To execute all of the above mentioned tools in one fell swoop, and simulate the
+full test suite executed by our [Travis CI cfpb/grasshopper-parser](https://travis-ci.org/cfpb/grasshopper-parser),
+you can also use `tox`:
+
+    tox
+
+All `tox` settings can be found in `tox.ini`.
 
 
 ## Getting involved
