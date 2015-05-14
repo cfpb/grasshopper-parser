@@ -65,11 +65,10 @@ Displays the current state of the API.
 
 ### `/parse`
 
-The `/parse` resource is the heart of this API.  It parses a free-text address
+The `/parse` resource is the heart of this API.  It parses free-text address
 strings into their component parts. 
 
-The following options are available via both `HTTP GET` query paramaters or
-JSON attributes via `HTTP POST`.
+This resource supports `GET` requests with the following query parameters:
 
 * **`address`:** Free-text address string to be parsed.
 
@@ -92,15 +91,6 @@ JSON attributes via `HTTP POST`.
 #### Request
 
     GET http://localhost:5000/parse?address=1311+30th+st+washington+dc+20007
-
-OR
-
-```curl
-curl -X POST \
--H "Content-Type: application/json" \
--d '{"address" : "1311 30th st washington dc 20007"}' \
-http://localhost:5000/parse
-```
 
 #### Response
 
