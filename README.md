@@ -24,7 +24,7 @@ quite simple to build and launch.
     * [Flask Dev Server](http://flask.pocoo.org/docs/0.10/server/)
 
 
-            python app/app.py
+            python app.py
 
     * ...or [Gunicorn](http://gunicorn.org/)
 
