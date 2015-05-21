@@ -22,6 +22,7 @@ class TestIntegration(object):
         import pytz
 
         host = platform.node()
+        service = 'grasshopper-parser'
         status = 'OK'
         time = datetime.now(pytz.utc).isoformat()
         up_since = app.UP_SINCE
@@ -30,6 +31,7 @@ class TestIntegration(object):
         rv = self.app.get('/status')
         data = json.loads(rv.data)
 
+        assert_equals(data['service'], service)
         assert_equals(data['status'], status)
         assert_equals(data['host'], host)
         assert_equals(data['upSince'], up_since)
