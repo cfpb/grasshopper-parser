@@ -106,6 +106,7 @@ def status():
     """
 
     status = {
+        "service": "grasshopper-parser",
         "status": "OK",
         "time": datetime.now(pytz.utc).isoformat(),
         "host": platform.node(),
