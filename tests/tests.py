@@ -102,7 +102,7 @@ class TestIntegration(object):
         assert_equals(400, rv.status_code)
         assert_equals(400, data['statusCode'])
 
-        assert_equals("'address' not present in request.", data['error'])
+        assert_equals("'address' query param is required.", data['error'])
 
     def test_parse_with_method_tag(self):
         """
@@ -198,3 +198,51 @@ class TestIntegration(object):
         assert_equals(400, rv.status_code)
         assert_equals(400, data['statusCode'])
         assert_true(data['error'].startswith("Parsed address includes invalid address part(s): ['USPSBox"))
+
+    def test_standardize_success(self):
+        """
+        /standardize - 200 with standard address string
+        """
+        # Setup
+        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
+        # Setup
+        addr_number = '1600'
+        street_name = 'Pennsylvania Ave NW'
+        city = 'Washington'
+        state = 'DC'
+        zip = '20006'
+
+        # Test
+        rv = self.app.get('/standardize?address={}'.format(addr_str))
+        data = json.loads(rv.data)
+        status_code = rv.status_code
+
+        assert_equals(200, status_code)
+
+        assert_equals(data['input'], addr_str)
+
+        parts = data['parts']
+
+        # WARN: These asserts have the potential to fail if we retrain the parser
+        assert_equals(parts['addressNumber'], addr_number)
+        assert_equals(parts['streetName'], street_name)
+        assert_equals(parts['city'], city)
+        assert_equals(parts['state'], state)
+        assert_equals(parts['zip'], zip)
+
+
+    def test_standardize_fail_validation(self):
+        """
+        /standardize - 400 with incomplete address
+        """
+        # Setup
+        addr_str = '1600 Pennsylvania Ave NW Washington DC'
+
+        # Test
+        rv = self.app.get('/standardize?address={}'.format(addr_str))
+        data = json.loads(rv.data)
+        status_code = rv.status_code
+
+        assert_equals(400, rv.status_code)
+        assert_equals(400, data['statusCode'])
+        assert_equals("Parsed address does not include required address part(s): ['ZipCode']", data['error'])

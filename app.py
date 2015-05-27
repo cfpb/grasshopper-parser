@@ -13,6 +13,7 @@ REQ_ADDR_PARTS = set([
     'AddressNumber',
     'PlaceName',
     'StateName',
+    'StreetName',
     'ZipCode',
 ])
 
@@ -116,19 +117,20 @@ def status():
     return jsonify(status)
 
 
+def get_address_param(req_data):
+    try:
+        return req_data['address']
+    except KeyError:
+        raise InvalidApiUsage("'address' query param is required.")
+
+
 @app.route('/parse', methods=['GET'])
 def parse():
     """
     Parses an address string into its component parts
     """
-
     req_data = request.args
-
-    try:
-        addr_str = req_data['address']
-    except KeyError:
-        raise InvalidApiUsage("'address' not present in request.")
-
+    addr_str = get_address_param(req_data)
     method = req_data.get('method', 'parse')
 
     # FIXME: Make this smarter.  Works as expected for JSON, but not GET param
@@ -146,6 +148,39 @@ def parse():
     response = {
         'input': addr_str,
         'parts': addr_parts
+    }
+
+    return jsonify(response)
+
+
+@app.route('/standardize', methods=['GET'])
+def standardize():
+    """
+    Parses an address string into address name and number, city, state, zip
+    """
+    req_data = request.args
+    addr_str = get_address_param(req_data)
+
+    addr_parts = parse_with_tag(addr_str)
+    validate_parse_results(addr_parts)
+
+    addr_num = addr_parts['AddressNumber']
+    city = addr_parts['PlaceName']
+    state = addr_parts['StateName']
+    zip_code = addr_parts['ZipCode']
+
+    street_parts = [v.strip() for k, v in addr_parts.iteritems() if k.startswith('StreetName')]
+    street = ' '.join(street_parts)
+
+    response = {
+        'input': addr_str,
+        'parts': {
+            'addressNumber': addr_num,
+            'streetName': street,
+            'city': city,
+            'state': state,
+            'zip': zip_code
+        }
     }
 
     return jsonify(response)
