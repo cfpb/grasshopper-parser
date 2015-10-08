@@ -100,7 +100,7 @@ class InvalidApiUsage(Exception):
 app = Flask(__name__)
 
 
-@app.route('/status', methods=['GET'])
+@app.route('/', methods=['GET'])
 def status():
     """
     Provides the current status of the address parsing service

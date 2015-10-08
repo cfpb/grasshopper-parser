@@ -14,7 +14,7 @@ class TestIntegration(object):
 
     def test_status(self):
         """
-        /status - simple request
+        / - simple request
         """
         # Setup
         from datetime import datetime
@@ -28,7 +28,7 @@ class TestIntegration(object):
         up_since = app.UP_SINCE
 
         # Test
-        rv = self.app.get('/status')
+        rv = self.app.get('/')
         data = json.loads(rv.data)
 
         assert_equals(data['service'], service)
