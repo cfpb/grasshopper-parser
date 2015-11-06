@@ -7,26 +7,8 @@ import platform
 import pytz
 import usaddress
 
-# Parsed addresses MUST have these part types to be "valid"
-# See: http://usaddress.readthedocs.org/en/latest/#details
-REQ_ADDR_PARTS = set([
-    'AddressNumber',
-    'PlaceName',
-    'StateName',
-    'StreetName',
-    'ZipCode',
-])
-
-# Parsed addresses must NOT have these part types to be "valid"
-INVALID_ADDR_PARTS = set([
-    'USPSBoxGroupID',
-    'USPSBoxGroupType',
-    'USPSBoxID',
-    'USPSBoxType',
-])
-
 UP_SINCE = datetime.now(pytz.utc).isoformat()
-
+HOSTNAME = platform.node() 
 
 def parse_with_parse(addr_str):
     """
@@ -34,12 +16,11 @@ def parse_with_parse(addr_str):
 
     See: http://usaddress.readthedocs.org/en/latest/#usage
     """
-    # usaddress parses free-text address into an array of tuples...why, I don't know.
+    # usaddress parses free-text address into an array of tuples.
     parsed = usaddress.parse(addr_str)
 
-    # Converted tuple array to dict
-    addr_parts = {addr_part[1]: addr_part[0] for addr_part in parsed}
-
+    addr_parts = [{'type': v, 'value': k} for k,v in parsed]
+        
     return addr_parts
 
 
@@ -50,31 +31,15 @@ def parse_with_tag(addr_str):
     See: http://usaddress.readthedocs.org/en/latest/#usage
     """
     try:
-        # FIXME: Consider using `tag()`'s address type for validation?
         # `tag` returns OrderedDict, ordered by address parts in original address string
-        addr_parts = usaddress.tag(addr_str)[0]
+        tagged = usaddress.tag(addr_str)[0].items()
     except usaddress.RepeatedLabelError:
-        # FIXME: Add richer logging here with contents of `rle`
+        # FIXME: Add richer logging here with contents of `rle` or chain exception w/ Python 3
         raise InvalidApiUsage("Could not parse address '{}' with 'tag' method".format(addr_str))
 
+    addr_parts = [{'type': k, 'value': v} for k,v in tagged]
+
     return addr_parts
-
-
-def validate_parse_results(addr_parts, req_addr_parts=REQ_ADDR_PARTS, invalid_addr_parts=INVALID_ADDR_PARTS):
-    """
-    Validates address parts list has all required part types, and no invalid types.
-    """
-    parsed_types = set(addr_parts.keys())
-
-    invalid = parsed_types & invalid_addr_parts
-
-    if invalid:
-        raise InvalidApiUsage('Parsed address includes invalid address part(s): {}'.format(list(invalid)))
-
-    missing = req_addr_parts - parsed_types
-
-    if missing:
-        raise InvalidApiUsage('Parsed address does not include required address part(s): {}'.format(list(missing)))
 
 
 # Maps `method` param to corresponding parse function
@@ -110,77 +75,35 @@ def status():
         "service": "grasshopper-parser",
         "status": "OK",
         "time": datetime.now(pytz.utc).isoformat(),
-        "host": platform.node(),
+        "host": HOSTNAME,
         "upSince": UP_SINCE,
     }
 
     return jsonify(status)
 
 
-def get_address_param(req_data):
-    try:
-        return req_data['address']
-    except KeyError:
-        raise InvalidApiUsage("'address' query param is required.")
-
-
-@app.route('/parse', methods=['GET'])
+@app.route('/parse', methods=['GET', 'POST'])
 def parse():
     """
     Parses an address string into its component parts
     """
-    req_data = request.args
-    addr_str = get_address_param(req_data)
-    method = req_data.get('method', 'parse')
+    params = request.args
 
-    # FIXME: Make this smarter.  Works as expected for JSON, but not GET param
-    #        May want to use Flask-RESTful, which has richer param parsing
-    validate = req_data.get('validate', False)
+    try:
+        addr_str = params['address']
+    except KeyError:
+        raise InvalidApiUsage("'address' query param is required.")
+
+    method = params.get('method', 'tag')
 
     try:
         addr_parts = parse_method_dispatch[method](addr_str)
     except KeyError:
         raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
 
-    if validate:
-        validate_parse_results(addr_parts)
-
     response = {
         'input': addr_str,
         'parts': addr_parts
-    }
-
-    return jsonify(response)
-
-
-@app.route('/standardize', methods=['GET'])
-def standardize():
-    """
-    Parses an address string into address name and number, city, state, zip
-    """
-    req_data = request.args
-    addr_str = get_address_param(req_data)
-
-    addr_parts = parse_with_tag(addr_str)
-    validate_parse_results(addr_parts)
-
-    addr_num = addr_parts['AddressNumber']
-    city = addr_parts['PlaceName']
-    state = addr_parts['StateName']
-    zip_code = addr_parts['ZipCode']
-
-    street_parts = [v.strip() for k, v in addr_parts.iteritems() if k.startswith('StreetName')]
-    street = ' '.join(street_parts)
-
-    response = {
-        'input': addr_str,
-        'parts': {
-            'addressNumber': addr_num,
-            'streetName': street,
-            'city': city,
-            'state': state,
-            'zip': zip_code
-        }
     }
 
     return jsonify(response)

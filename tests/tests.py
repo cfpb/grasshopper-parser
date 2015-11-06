@@ -83,20 +83,27 @@ class TestIntegration(object):
         parts = data['parts']
 
         # WARN: These asserts have the potential to fail if we retrain the parser
-        assert_equals(parts['AddressNumber'], addr_number)
-        assert_equals(parts['PlaceName'], city)
-        assert_equals(parts['StateName'], state)
-        assert_equals(parts['StreetName'], street_name)
-        assert_equals(parts['StreetNamePostDirectional'], street_direction)
-        assert_equals(parts['StreetNamePostType'], street_type)
-        assert_equals(parts['ZipCode'], zip)
+        assert_equals(parts[0]['type'], 'AddressNumber')
+        assert_equals(parts[0]['value'], addr_number)
+        assert_equals(parts[1]['type'], 'StreetName')
+        assert_equals(parts[1]['value'], street_name)
+        assert_equals(parts[2]['type'], 'StreetNamePostType')
+        assert_equals(parts[2]['value'], street_type)
+        assert_equals(parts[3]['type'], 'StreetNamePostDirectional')
+        assert_equals(parts[3]['value'], street_direction)
+        assert_equals(parts[4]['type'], 'PlaceName')        
+        assert_equals(parts[4]['value'], city)
+        assert_equals(parts[5]['type'], 'StateName')
+        assert_equals(parts[5]['value'], state)
+        assert_equals(parts[6]['type'], 'ZipCode')
+        assert_equals(parts[6]['value'], zip)
 
     def test_parse_fail_no_address(self):
         """
         /parse - 400 with 'address' param is not present
         """
         # Test
-        rv = self.app.get('/parse?method=tag&validate=true')
+        rv = self.app.get('/parse?method=tag')
         data = json.loads(rv.data)
 
         assert_equals(400, rv.status_code)
@@ -157,92 +164,4 @@ class TestIntegration(object):
         assert_equals(400, data['statusCode'])
         assert_equals("Parsing method '{}' not supported.".format(bad_method), data['error'])
 
-    def test_parse_with_validate_success(self):
-        """
-        /parse - 200 with 'validate=true' and valid address
-        """
-        # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
 
-        # Test
-        rv = self.app.get('/parse?address={}&validate=true'.format(address))
-
-        assert_equals(200, rv.status_code)
-
-    def test_parse_with_validate_fail_incomplete(self):
-        """
-        /parse - 400 with 'validate=true' and incomplete address
-        """
-        # Setup
-        address_no_zip = '1600 Pennsylvania Ave NW Washington DC'
-
-        # Test
-        rv = self.app.get('/parse?address={}&validate=true'.format(address_no_zip))
-        data = json.loads(rv.data)
-
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_equals("Parsed address does not include required address part(s): ['ZipCode']", data['error'])
-
-    def test_parse_with_validate_fail_invalid_parts(self):
-        """
-        /parse - 400 with 'validate=true' and invalid address
-        """
-        # Setup
-        address_po_box = 'P.O Box 12345 Washington DC 20006'
-
-        # Test
-        rv = self.app.get('/parse?address={}&validate=true'.format(address_po_box))
-        data = json.loads(rv.data)
-
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_true(data['error'].startswith("Parsed address includes invalid address part(s): ['USPSBox"))
-
-    def test_standardize_success(self):
-        """
-        /standardize - 200 with standard address string
-        """
-        # Setup
-        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
-        # Setup
-        addr_number = '1600'
-        street_name = 'Pennsylvania Ave NW'
-        city = 'Washington'
-        state = 'DC'
-        zip = '20006'
-
-        # Test
-        rv = self.app.get('/standardize?address={}'.format(addr_str))
-        data = json.loads(rv.data)
-        status_code = rv.status_code
-
-        assert_equals(200, status_code)
-
-        assert_equals(data['input'], addr_str)
-
-        parts = data['parts']
-
-        # WARN: These asserts have the potential to fail if we retrain the parser
-        assert_equals(parts['addressNumber'], addr_number)
-        assert_equals(parts['streetName'], street_name)
-        assert_equals(parts['city'], city)
-        assert_equals(parts['state'], state)
-        assert_equals(parts['zip'], zip)
-
-
-    def test_standardize_fail_validation(self):
-        """
-        /standardize - 400 with incomplete address
-        """
-        # Setup
-        addr_str = '1600 Pennsylvania Ave NW Washington DC'
-
-        # Test
-        rv = self.app.get('/standardize?address={}'.format(addr_str))
-        data = json.loads(rv.data)
-        status_code = rv.status_code
-
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_equals("Parsed address does not include required address part(s): ['ZipCode']", data['error'])
