@@ -14,7 +14,7 @@ class TestIntegration(object):
 
     def test_status(self):
         """
-        / - simple request
+        GET / -> 200 with service status
         """
         # Setup
         from datetime import datetime
@@ -47,7 +47,7 @@ class TestIntegration(object):
 
     def test_internal_error(self):
         """
-        /explode - 500 on internal error
+        GET /explode -> 500 on internal error
         """
         # Test
         rv = self.app.get('/explode')
@@ -59,7 +59,7 @@ class TestIntegration(object):
 
     def test_parse_success(self):
         """
-        /parse - 200 with just address, and parses correctly
+        GET /parse -> 200 with just address, and parses correctly
         """
         # Setup
         addr_number = '1600'
@@ -100,7 +100,7 @@ class TestIntegration(object):
 
     def test_parse_fail_no_address(self):
         """
-        /parse - 400 with 'address' param is not present
+        GET /parse -> 400 with 'address' param is not present
         """
         # Test
         rv = self.app.get('/parse?method=tag')
@@ -113,7 +113,7 @@ class TestIntegration(object):
 
     def test_parse_with_method_tag(self):
         """
-        /parse - 200 with 'method=tag'
+        GET /parse -> 200 with 'method=tag'
         """
         # Setup
         address = '1600 Pennsylvania Ave NW Washington DC 20006'
@@ -124,7 +124,7 @@ class TestIntegration(object):
 
     def test_parse_with_method_tag_fail_repeated_label_error(self):
         """
-        /parse - 400 with 'method=tag' and address that raises RepeatedLabelError
+        GET /parse -> 400 with 'method=tag' and address that raises RepeatedLabelError
         """
         # Setup
         address = '1234 Main St. 1234 Main St., Sacramento, CA 95818'
@@ -139,7 +139,7 @@ class TestIntegration(object):
 
     def test_parse_with_method_parse(self):
         """
-        /parse - 200 with 'method=parse'
+        GET /parse -> 200 with 'method=parse'
         """
         # Setup
         address = '1600 Pennsylvania Ave NW Washington DC 20006'
@@ -150,7 +150,7 @@ class TestIntegration(object):
 
     def test_parse_with_method_invalid(self):
         """
-        /parse - 400 with invalid 'method' param value
+        GET /parse -> 400 with invalid 'method' param value
         """
         # Setup
         address = '1600 Pennsylvania Ave NW Washington DC 20006'
@@ -164,4 +164,48 @@ class TestIntegration(object):
         assert_equals(400, data['statusCode'])
         assert_equals("Parsing method '{}' not supported.".format(bad_method), data['error'])
 
+
+    def test_parse_batch_success(self):
+        """
+        POST /parse -> 200 with just "addresses"
+        """
+        # Setup
+        req_data = {
+            'addresses': [
+                '1600 Pennsylvania Ave NW Washington DC 20006',
+                '1234 Main St., Somewheresville, CA 91234'
+            ]
+        }
+        req_json = json.dumps(req_data)
+
+        # Test
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
+
+        assert_equals(200, resp.status_code)
+        assert_equals(len(req_data['addresses']), len(resp_data['addresses']))
+
+
+    def test_parse_batch_with_method_invalid(self):
+        """
+        POST /parse -> 400 with invalid 'method' attribute value
+        """
+        # Setup
+        bad_method = 'bad'
+        req_data = {
+            'method': bad_method,
+            'addresses': [
+                '1600 Pennsylvania Ave NW Washington DC 20006',
+                '1234 Main St., Somewheresville, CA 91234'
+            ]
+        }
+        req_json = json.dumps(req_data)
+
+        # Test
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
+
+        assert_equals(400, resp.status_code)
+        assert_equals(400, resp_data['statusCode'])
+        assert_equals("Parsing method '{}' not supported.".format(bad_method), resp_data['error'])
 
