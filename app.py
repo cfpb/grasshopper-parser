@@ -82,7 +82,7 @@ def status():
     return jsonify(status)
 
 
-@app.route('/parse', methods=['GET', 'POST'])
+@app.route('/parse', methods=['GET'])
 def parse():
     """
     Parses an address string into its component parts
@@ -105,6 +105,35 @@ def parse():
         'input': addr_str,
         'parts': addr_parts
     }
+
+    return jsonify(response)
+
+
+@app.route('/parse', methods=['POST'])
+def parse_batch():
+    """
+    Parses a batch of address strings into the component parts
+    """
+    # FIXME: Remove "force", add explicit Content-Type handling
+    body = request.get_json(force=True)
+    method = body.get('method', 'tag')
+
+    try:
+        addresses = body['addresses']
+    except KeyError:
+        raise InvalidApiUsage("'addresses' attribute is required.")
+
+    parsed_addresses = []
+    
+    for addr_str in addresses:
+        try:
+            addr_parts = parse_method_dispatch[method](addr_str)
+        except KeyError:
+            raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
+
+        parsed_addresses.append(addr_parts)
+
+    response = {'addresses': parsed_addresses}
 
     return jsonify(response)
 
