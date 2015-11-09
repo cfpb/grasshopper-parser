@@ -3,7 +3,7 @@ Unit and integration tests for grasshopper-parser
 """
 import app
 from flask import json
-from nose.tools import assert_equals, assert_true
+from nose.tools import assert_equals, assert_false, assert_true
 
 
 class TestIntegration(object):
@@ -183,8 +183,32 @@ class TestIntegration(object):
         resp_data = json.loads(resp.data)
 
         assert_equals(200, resp.status_code)
-        assert_equals(len(req_data['addresses']), len(resp_data['addresses']))
+        assert_false(resp_data['failed'])
+        assert_equals(len(req_data['addresses']), len(resp_data['parsed']))
+        assert_equals(len(resp_data['parsed'][0]['parts']), 7)
 
+
+    def test_parse_batch_with_failed_parse(self):
+        """
+        POST /parse -> 200 with good and bad address strings
+        """
+        # Setup
+        req_data = {
+            'addresses': [
+                '1600 Pennsylvania Ave NW Washington DC 20006',
+                '5 Arapahoe Plaza El Paso TX 88530'
+            ]
+        }
+        req_json = json.dumps(req_data)
+
+        # Test
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
+
+        assert_equals(200, resp.status_code)
+        assert_equals(resp_data['failed'][0], '5 Arapahoe Plaza El Paso TX 88530')
+        assert_equals(resp_data['parsed'][0]['input'], '1600 Pennsylvania Ave NW Washington DC 20006')
+       
 
     def test_parse_batch_with_method_invalid(self):
         """

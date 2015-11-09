@@ -34,6 +34,7 @@ def parse_with_tag(addr_str):
         # `tag` returns OrderedDict, ordered by address parts in original address string
         tagged = usaddress.tag(addr_str)[0].items()
     except usaddress.RepeatedLabelError:
+        
         # FIXME: Add richer logging here with contents of `rle` or chain exception w/ Python 3
         raise InvalidApiUsage("Could not parse address '{}' with 'tag' method".format(addr_str))
 
@@ -123,17 +124,26 @@ def parse_batch():
     except KeyError:
         raise InvalidApiUsage("'addresses' attribute is required.")
 
-    parsed_addresses = []
+    parsed = []
+    failed = []
     
     for addr_str in addresses:
         try:
             addr_parts = parse_method_dispatch[method](addr_str)
         except KeyError:
             raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
+        except InvalidApiUsage:
+            failed.append(addr_str)
 
-        parsed_addresses.append(addr_parts)
+        parsed.append({
+            'input': addr_str,
+            'parts': addr_parts
+        })
 
-    response = {'addresses': parsed_addresses}
+    response = {
+        'parsed': parsed, 
+        'failed': failed
+    }
 
     return jsonify(response)
 
