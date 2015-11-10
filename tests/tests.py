@@ -58,6 +58,21 @@ class TestIntegration(object):
         assert_equals(500, data['statusCode'])
         assert_equals("Hey!  Don't do that!", data['error'])
 
+    def test_resource_not_found(self):
+        """
+        GET /bad-resource -> 404 on resource not found
+        """
+        # Setup
+        url = '/bad-resource'
+        
+        # Test
+        rv = self.app.get(url)
+        data = json.loads(rv.data)
+
+        assert_equals(404, rv.status_code)
+        assert_equals(404, data['statusCode'])
+        assert_equals("Resource not found", data['error'])
+   
     def test_parse_success(self):
         """
         GET /parse -> 200 with just address, and parses correctly
@@ -165,7 +180,6 @@ class TestIntegration(object):
         assert_equals(400, data['statusCode'])
         assert_equals("Parsing method '{}' not supported.".format(bad_method), data['error'])
 
-
     def test_parse_batch_success(self):
         """
         POST /parse -> 200 with just "addresses"
@@ -188,7 +202,6 @@ class TestIntegration(object):
         assert_equals(len(req_data['addresses']), len(resp_data['parsed']))
         assert_equals(len(resp_data['parsed'][0]['parts']), 7)
 
-
     def test_parse_batch_with_failed_parse(self):
         """
         POST /parse -> 200 with good and bad address strings
@@ -210,7 +223,6 @@ class TestIntegration(object):
         assert_equals(resp_data['failed'][0], '5 Arapahoe Plaza El Paso TX 88530')
         assert_equals(resp_data['parsed'][0]['input'], '1600 Pennsylvania Ave NW Washington DC 20006')
        
-
     def test_parse_batch_with_no_addresses(self):
         """
         POST /parse -> 400 with no 'addresses' array
@@ -225,7 +237,6 @@ class TestIntegration(object):
         assert_equals(400, resp.status_code)
         assert_equals(400, resp_data['statusCode'])
         assert_equals("'addresses' array not populated", resp_data['error'])       
-
 
     def test_parse_batch_with_too_many_addresses(self):
         """
@@ -249,7 +260,6 @@ class TestIntegration(object):
         assert_equals(400, resp.status_code)
         assert_equals(400, resp_data['statusCode'])
         assert_equals("'addresses' contained 4 elements, exceeding max of 3", resp_data['error'])
-
 
     def test_parse_batch_with_method_invalid(self):
         """
