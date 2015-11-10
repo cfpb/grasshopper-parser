@@ -9,3 +9,9 @@ loglevel = "info"
 # "-" = stderr
 accesslog = "-"
 errorlog = "-"
+
+# Accept X-Forwarded-For from reverse proxy:
+#   http://gunicorn-docs.readthedocs.org/en/latest/settings.html#forwarded-allow-ips
+#   http://gunicorn-docs.readthedocs.org/en/latest/deploy.html
+forwarded_allow_ips = "*"
+

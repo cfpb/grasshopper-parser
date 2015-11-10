@@ -1,5 +1,5 @@
 flask==0.10.1
 gunicorn==19.3.0
-pytz==2015.2
-usaddress==0.4.6
+pytz==2015.7
+usaddress==0.5.4
 
