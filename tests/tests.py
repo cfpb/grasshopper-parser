@@ -9,6 +9,7 @@ from nose.tools import assert_equals, assert_false, assert_true
 class TestIntegration(object):
 
     def setup(self):
+        app.MAX_BATCH_SIZE = 3
         app.app.config['TESTING'] = True
         self.app = app.app.test_client()
 
@@ -209,6 +210,46 @@ class TestIntegration(object):
         assert_equals(resp_data['failed'][0], '5 Arapahoe Plaza El Paso TX 88530')
         assert_equals(resp_data['parsed'][0]['input'], '1600 Pennsylvania Ave NW Washington DC 20006')
        
+
+    def test_parse_batch_with_no_addresses(self):
+        """
+        POST /parse -> 400 with no 'addresses' array
+        """
+        # Setup
+        req_json = json.dumps({})
+        
+        # Test
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
+
+        assert_equals(400, resp.status_code)
+        assert_equals(400, resp_data['statusCode'])
+        assert_equals("'addresses' array not populated", resp_data['error'])       
+
+
+    def test_parse_batch_with_too_many_addresses(self):
+        """
+        POST /parse -> 400 with 'addresses' array too big 
+        """
+        # Setup
+        req_data = {
+            'addresses': [
+                'address1',
+                'address2',
+                'address3',
+                'address4'
+            ]
+        }
+        req_json = json.dumps(req_data)
+       
+        # Test
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
+
+        assert_equals(400, resp.status_code)
+        assert_equals(400, resp_data['statusCode'])
+        assert_equals("'addresses' contained 4 elements, exceeding max of 3", resp_data['error'])
+
 
     def test_parse_batch_with_method_invalid(self):
         """

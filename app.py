@@ -8,7 +8,8 @@ import pytz
 import usaddress
 
 UP_SINCE = datetime.now(pytz.utc).isoformat()
-HOSTNAME = platform.node() 
+HOSTNAME = platform.node()
+MAX_BATCH_SIZE = 5000
 
 def parse_with_parse(addr_str):
     """
@@ -117,12 +118,17 @@ def parse_batch():
     """
     # FIXME: Remove "force", add explicit Content-Type handling
     body = request.get_json(force=True)
-    method = body.get('method', 'tag')
 
-    try:
-        addresses = body['addresses']
-    except KeyError:
-        raise InvalidApiUsage("'addresses' attribute is required.")
+    method = body.get('method', 'tag')
+    addresses = body.get('addresses', None)
+
+    if not addresses:
+        raise InvalidApiUsage("'addresses' array not populated")
+
+    addrs_len = len(addresses)
+
+    if addrs_len > MAX_BATCH_SIZE:
+        raise InvalidApiUsage("'addresses' contained {} elements, exceeding max of {}".format(addrs_len, MAX_BATCH_SIZE))
 
     parsed = []
     failed = []
@@ -133,6 +139,8 @@ def parse_batch():
         except KeyError:
             raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
         except InvalidApiUsage:
+            #FIXME: Logger does not work under Gunicorn
+            app.logger.warn('Could not parse address "{}"'.format(addr_str))
             failed.append(addr_str)
 
         parsed.append({
