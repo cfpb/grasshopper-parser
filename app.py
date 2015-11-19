@@ -157,6 +157,7 @@ def parse_batch():
     body = request.get_json(force=True)
 
     method = body.get('method', 'tag')
+    profile = body.get('profile', None)
     addresses = body.get('addresses', None)
 
     if not addresses:
@@ -173,6 +174,10 @@ def parse_batch():
     for addr_str in addresses:
         try:
             addr_parts = parse_method_dispatch[method](addr_str)
+
+            if profile:
+                addr_parts = add_profile_addr_parts(profile, addr_parts)
+
         except KeyError:
             raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
         except InvalidApiUsage:
