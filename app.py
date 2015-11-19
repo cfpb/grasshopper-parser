@@ -56,7 +56,7 @@ def parse_with_tag(addr_str):
 # Maps `method` param to corresponding parse function
 parse_method_dispatch = {'parse': parse_with_parse, 'tag': parse_with_tag}
 
-def add_profile_addr_parts(profile_name, addr_parts):
+def process_profile(profile_name, addr_parts):
     """
     Translates the address parts to profile-specific parts
     """
@@ -65,18 +65,30 @@ def add_profile_addr_parts(profile_name, addr_parts):
     except KeyError:
         raise InvalidApiUsage("Parsing profile '{}' not supported".format(profile_name))
 
-    # Filter out the "standard" address part types
+    # Get "aggegate" address part types from "required"
     aggr_part_types = filter(lambda x: AGGREGATE_PART_MAPPING.has_key(x), profile_part_types)
 
     for aggr_part_type in aggr_part_types:
-        # Get all child address parts types for a given aggregate address part type
+
+        # Get all child address parts types for a given "aggregate"
         child_part_types = AGGREGATE_PART_MAPPING[aggr_part_type]
+
+        # Filter out all child parts not in current address
         filtered_child_parts = filter(lambda x: x['type'] in child_part_types, addr_parts)
         child_part_values = map(lambda x: x['value'], filtered_child_parts)
-        
+       
+        # Build a space-separated string of all available child parts
         aggr_part_value = " ".join(child_part_values)
 
         addr_parts.append({'type': aggr_part_type, 'value': aggr_part_value})
+
+    # Validate all required fields are present
+    addr_part_types = map(lambda x: x['type'], addr_parts)
+    missing_parts = filter(lambda x: x not in addr_part_types, profile_part_types)
+
+    if missing_parts:
+        # FIXME: This should be its own Exception type
+        raise InvalidApiUsage("Could not parse out required address parts: {}".format(missing_parts))
         
     return addr_parts
 
@@ -138,7 +150,7 @@ def parse():
         raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
         
     if profile:
-        addr_parts = add_profile_addr_parts(profile, addr_parts)
+        addr_parts = process_profile(profile, addr_parts)
 
     response = {
         'input': addr_str,
