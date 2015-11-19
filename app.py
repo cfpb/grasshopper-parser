@@ -6,10 +6,19 @@ from flask import Flask, jsonify, request
 import platform
 import pytz
 import usaddress
+import yaml
 
 UP_SINCE = datetime.now(pytz.utc).isoformat()
 HOSTNAME = platform.node()
 MAX_BATCH_SIZE = 5000
+
+with open("rules.yaml", 'r') as f:
+    rules_yaml= yaml.safe_load(f)
+
+
+STANDARD_PART_MAPPING = {x['value']: x['id'] for x in rules_yaml['address_parts']['standard']}
+AGGREGATE_PART_MAPPING = {x['id']: x['parts'] for x in rules_yaml['address_parts']['aggregates']}
+PROFILE_MAPPING = {x['id']: x['required'] for x in rules_yaml['profiles']}
 
 def parse_with_parse(addr_str):
     """
@@ -20,7 +29,7 @@ def parse_with_parse(addr_str):
     # usaddress parses free-text address into an array of tuples.
     parsed = usaddress.parse(addr_str)
 
-    addr_parts = [{'type': v, 'value': k} for k,v in parsed]
+    addr_parts = [{'type': STANDARD_PART_MAPPING[v], 'value': k} for k,v in parsed]
         
     return addr_parts
 
@@ -39,13 +48,37 @@ def parse_with_tag(addr_str):
         # FIXME: Add richer logging here with contents of `rle` or chain exception w/ Python 3
         raise InvalidApiUsage("Could not parse address '{}' with 'tag' method".format(addr_str))
 
-    addr_parts = [{'type': k, 'value': v} for k,v in tagged]
+    addr_parts = [{'type': STANDARD_PART_MAPPING[k], 'value': v} for k,v in tagged]
 
     return addr_parts
 
 
 # Maps `method` param to corresponding parse function
 parse_method_dispatch = {'parse': parse_with_parse, 'tag': parse_with_tag}
+
+def add_profile_addr_parts(profile_name, addr_parts):
+    """
+    Translates the address parts to profile-specific parts
+    """
+    try:
+        profile_part_types = PROFILE_MAPPING[profile_name]
+    except KeyError:
+        raise InvalidApiUsage("Parsing profile '{}' not supported".format(profile_name))
+
+    # Filter out the "standard" address part types
+    aggr_part_types = filter(lambda x: AGGREGATE_PART_MAPPING.has_key(x), profile_part_types)
+
+    for aggr_part_type in aggr_part_types:
+        # Get all child address parts types for a given aggregate address part type
+        child_part_types = AGGREGATE_PART_MAPPING[aggr_part_type]
+        filtered_child_parts = filter(lambda x: x['type'] in child_part_types, addr_parts)
+        child_part_values = map(lambda x: x['value'], filtered_child_parts)
+        
+        aggr_part_value = " ".join(child_part_values)
+
+        addr_parts.append({'type': aggr_part_type, 'value': aggr_part_value})
+        
+    return addr_parts
 
 
 class InvalidApiUsage(Exception):
@@ -97,11 +130,15 @@ def parse():
         raise InvalidApiUsage("'address' query param is required.")
 
     method = params.get('method', 'tag')
+    profile = params.get('profile', None)
 
     try:
         addr_parts = parse_method_dispatch[method](addr_str)
     except KeyError:
         raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
+        
+    if profile:
+        addr_parts = add_profile_addr_parts(profile, addr_parts)
 
     response = {
         'input': addr_str,
@@ -173,7 +210,8 @@ def not_found_error(error):
 @app.errorhandler(Exception)
 def default_error(error):
     # FIXME: This should be scrubbed
-    return gen_error_json(str(error), 500)
+    app.logger.exception('Internal server error')
+    return gen_error_json('Internal server error', 500)
 
 
 if __name__ == '__main__':
