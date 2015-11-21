@@ -6,6 +6,9 @@ from flask import json
 from nose.tools import assert_equals, assert_false, assert_raises, assert_true
 import yaml
 
+# Hack to get nose asserts to give diff against large lists
+assert_equals.__self__.maxDiff = None
+
 class TestUSAddressParser(object):
 
     def setup(self):
@@ -106,7 +109,7 @@ class TestUSAddressParser(object):
         assert_equals(actual, expected)
 
 
-class TestIntegration(object):
+class TestAPI(object):
 
     def setup(self):
         app.MAX_BATCH_SIZE = 3
@@ -172,47 +175,81 @@ class TestIntegration(object):
         assert_equals(404, rv.status_code)
         assert_equals(404, data['statusCode'])
         assert_equals("Resource not found", data['error'])
-   
+
     def test_parse_success(self):
         """
-        API: GET /parse -> 200 with just address, and parses correctly
+        API: GET /parse -> 200 with just address
         """
         # Setup
-        addr_number = '1600'
-        street_name = 'Pennsylvania'
-        street_type = 'Ave'
-        street_direction = 'NW'
-        city = 'Washington'
-        state = 'DC'
-        zip = '20006'
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
-
+        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
+        expected = {
+            'input': addr_str,
+            'parts': [
+                {'type': 'address_number', 'value': '1600'},
+                {'type': 'street_name', 'value': 'Pennsylvania'},
+                {'type': 'street_name_post_type', 'value': 'Ave'},
+                {'type': 'street_name_post_directional', 'value': 'NW'},
+                {'type': 'city_name', 'value': 'Washington'},
+                {'type': 'state_name', 'value': 'DC'},
+                {'type': 'zip_code', 'value': '20006'}
+            ]}
+        
         # Test
-        rv = self.app.get('/parse?address={}'.format(address))
-        data = json.loads(rv.data)
+        rv = self.app.get('/parse?address={}'.format(addr_str))
+        actual = json.loads(rv.data)
         status_code = rv.status_code
 
         assert_equals(200, status_code)
+        assert_equals(expected, actual)
+        
+    def test_parse_with_profile_success(self):
+        """
+        API: GET /parse -> 200 with address and profile
+        """
+        # Setup
+        profile = 'grasshopper'
+        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
+        expected = {
+            'input': addr_str,
+            'parts': [
+                {'type': 'address_number', 'value': '1600'},
+                {'type': 'street_name', 'value': 'Pennsylvania'},
+                {'type': 'street_name_post_type', 'value': 'Ave'},
+                {'type': 'street_name_post_directional', 'value': 'NW'},
+                {'type': 'city_name', 'value': 'Washington'},
+                {'type': 'state_name', 'value': 'DC'},
+                {'type': 'zip_code', 'value': '20006'},
+                {'type': 'address_number_full', 'value': '1600'},
+                {'type': 'street_name_full', 'value': 'Pennsylvania Ave NW'}
+            ]}
+        
+        # Test
+        rv = self.app.get('/parse?address={}&profile={}'.format(addr_str, profile))
+        actual = json.loads(rv.data)
+        status_code = rv.status_code
 
-        assert_equals(data['input'], address)
+        assert_equals(200, status_code)
+        assert_equals(expected, actual)
 
-        parts = data['parts']
+    def test_parse_with_invalid_profile(self):
+        """
+        API: GET /parse -> 400 with invalid profile
+        """
+        # Setup
+        profile = 'bad'
+        expected = {
+            'statusCode': 400, 
+            'error': "Parsing profile '{}' not supported".format(profile)
+        }
+        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
 
-        # WARN: These asserts have the potential to fail if we retrain the parser
-        assert_equals(parts[0]['type'], 'address_number')
-        assert_equals(parts[0]['value'], addr_number)
-        assert_equals(parts[1]['type'], 'street_name')
-        assert_equals(parts[1]['value'], street_name)
-        assert_equals(parts[2]['type'], 'street_name_post_type')
-        assert_equals(parts[2]['value'], street_type)
-        assert_equals(parts[3]['type'], 'street_name_post_directional')
-        assert_equals(parts[3]['value'], street_direction)
-        assert_equals(parts[4]['type'], 'city_name')        
-        assert_equals(parts[4]['value'], city)
-        assert_equals(parts[5]['type'], 'state_name')
-        assert_equals(parts[5]['value'], state)
-        assert_equals(parts[6]['type'], 'zip_code')
-        assert_equals(parts[6]['value'], zip)
+        # Test
+        rv = self.app.get('/parse?address={}&profile={}'.format(addr_str, profile))
+        actual = json.loads(rv.data)
+        status_code = rv.status_code
+
+        assert_equals(400, status_code)
+        assert_equals(expected, actual)
 
     def test_parse_fail_no_address(self):
         """
@@ -227,18 +264,7 @@ class TestIntegration(object):
 
         assert_equals("'address' query param is required.", data['error'])
 
-    def test_parse_with_method_tag(self):
-        """
-        API: GET /parse -> 200 with 'method=tag'
-        """
-        # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
-
-        # Test
-        rv = self.app.get('/parse?address={}&method=tag'.format(address))
-        assert_equals(200, rv.status_code)
-
-    def test_parse_with_method_tag_fail_repeated_label_error(self):
+    def test_parse_fail_with_repeated_label_error(self):
         """
         API: GET /parse -> 400 with 'method=tag' and address that raises RepeatedLabelError
         """
@@ -246,23 +272,12 @@ class TestIntegration(object):
         address = '1234 Main St. 1234 Main St., Sacramento, CA 95818'
 
         # Test
-        rv = self.app.get('/parse?address={}&method=tag'.format(address))
+        rv = self.app.get('/parse?address={}'.format(address))
         data = json.loads(rv.data)
 
         assert_equals(400, rv.status_code)
         assert_equals(400, data['statusCode'])
         assert_equals("Could not parse address '{}' with 'tag' method".format(address), data['error'])
-
-    def test_parse_with_method_parse(self):
-        """
-        API: GET /parse -> 200 with 'method=parse'
-        """
-        # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
-
-        # Test
-        rv = self.app.get('/parse?address={}&method=parse'.format(address))
-        assert_equals(200, rv.status_code)
 
     def test_parse_batch_success(self):
         """
