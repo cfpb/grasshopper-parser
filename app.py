@@ -82,7 +82,6 @@ class USAddressParser(object):
         return addr_parts
 
 
-
     def parse(self, addr_str, profile_name=None):
         """
         Parses an address string using usaddress, method  based on `parse_method` init arg
@@ -186,7 +185,6 @@ def parse():
     except KeyError:
         raise InvalidApiUsage("'address' query param is required.")
 
-    method = params.get('method', 'tag')
     profile = params.get('profile', None)
 
     addr_parts = PARSER.parse(addr_str, profile)
@@ -207,7 +205,6 @@ def parse_batch():
     # FIXME: Remove "force", add explicit Content-Type handling
     body = request.get_json(force=True)
 
-    method = body.get('method', 'tag')
     profile = body.get('profile', None)
     addresses = body.get('addresses', None)
 
