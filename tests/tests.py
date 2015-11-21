@@ -3,7 +3,107 @@ Unit and integration tests for grasshopper-parser
 """
 import app
 from flask import json
-from nose.tools import assert_equals, assert_false, assert_true
+from nose.tools import assert_equals, assert_false, assert_raises, assert_true
+import yaml
+
+class TestUSAddressParser(object):
+
+    def setup(self):
+        with open("rules.yaml", 'r') as f:
+            self.yaml_rules = yaml.safe_load(f)
+
+    def test_init_default(self):
+        """
+        PARSER: init - default
+        """
+        # Setup
+        cut = app.USAddressParser()
+
+        # Test
+        assert_equals(cut.rules, self.yaml_rules)
+        assert_equals(cut.parse_function.__name__, 'parse_with_usaddress_tag')
+
+    def test_init_with_parse_method(self):
+        """
+        PARSER: init - with valid parse_method
+        """
+        # Setup
+        parser = app.USAddressParser(parse_method='parse')
+
+        # Test
+        assert_equals(parser.rules, self.yaml_rules)
+        assert_equals(parser.parse_function.__name__, 'parse_with_usaddress_parse')
+
+    def test_init_with_parse_method_invalid(self):
+        """
+        PARSER: init - with invalid parse_method
+        """
+        # Setup
+        parse_method = 'bad'
+
+        # Test
+        with assert_raises(ValueError) as context:
+            parser = app.USAddressParser(parse_method=parse_method)
+
+        err_msg = context.exception.message
+        assert_equals(err_msg, "Parse method '{}' not supported.".format(parse_method))
+         
+    def test_init_with_rules_valid(self):
+        """
+        PARSER: init - with valid rules
+        """
+        # Setup
+        rules = {
+            'address_parts': {
+                'standard': {},
+                'derived': {}
+            },
+            'profiles': {}
+        }
+
+        # Test
+        parser = app.USAddressParser(rules=rules)
+        parser.rules = rules
+
+    def test_parse_with_usaddress_parse(self):
+        """
+        PARSER: usaddress `parse` function
+        """
+        # Setup
+        addr_str = '1234 Main St., Sacramento CA 95818'
+        expected = [
+            {'type': 'address_number', 'value': u'1234'},
+            {'type': 'street_name', 'value': u'Main'},
+            {'type': 'street_name_post_type', 'value': u'St.,'},
+            {'type': 'city_name', 'value': u'Sacramento'},
+            {'type': 'state_name', 'value': u'CA'},
+            {'type': 'zip_code', 'value': u'95818'}
+        ]
+        cut = app.USAddressParser()
+
+        # Test
+        actual = cut.parse_with_usaddress_parse(addr_str)
+        assert_equals(actual, expected)
+
+    def test_parse_with_usaddress_tag(self):
+        """
+        PARSER: usaddress `tag` function
+        """
+        # Setup
+        addr_str = '1234 Main St., Sacramento CA 95818'
+        expected = [
+            {'type': 'address_number', 'value': u'1234'},
+            {'type': 'street_name', 'value': u'Main'},
+            {'type': 'street_name_post_type', 'value': u'St.'}, # Strips comma
+            {'type': 'city_name', 'value': u'Sacramento'},
+            {'type': 'state_name', 'value': u'CA'},
+            {'type': 'zip_code', 'value': u'95818'}
+        ]
+        cut = app.USAddressParser()
+
+        # Test
+        actual = cut.parse_with_usaddress_tag(addr_str)
+        assert_equals(actual, expected)
 
 
 class TestIntegration(object):
@@ -15,7 +115,7 @@ class TestIntegration(object):
 
     def test_status(self):
         """
-        GET / -> 200 with service status
+        API: GET / -> 200 with service status
         """
         # Setup
         from datetime import datetime
@@ -48,7 +148,7 @@ class TestIntegration(object):
 
     def test_internal_error(self):
         """
-        GET /explode -> 500 on internal error
+        API: GET /explode -> 500 on internal error
         """
         # Test
         rv = self.app.get('/explode')
@@ -56,11 +156,11 @@ class TestIntegration(object):
 
         assert_equals(500, rv.status_code)
         assert_equals(500, data['statusCode'])
-        assert_equals("Hey!  Don't do that!", data['error'])
+        assert_equals("Internal server error", data['error'])
 
     def test_resource_not_found(self):
         """
-        GET /bad-resource -> 404 on resource not found
+        API: GET /bad-resource -> 404 on resource not found
         """
         # Setup
         url = '/bad-resource'
@@ -75,7 +175,7 @@ class TestIntegration(object):
    
     def test_parse_success(self):
         """
-        GET /parse -> 200 with just address, and parses correctly
+        API: GET /parse -> 200 with just address, and parses correctly
         """
         # Setup
         addr_number = '1600'
@@ -99,24 +199,24 @@ class TestIntegration(object):
         parts = data['parts']
 
         # WARN: These asserts have the potential to fail if we retrain the parser
-        assert_equals(parts[0]['type'], 'AddressNumber')
+        assert_equals(parts[0]['type'], 'address_number')
         assert_equals(parts[0]['value'], addr_number)
-        assert_equals(parts[1]['type'], 'StreetName')
+        assert_equals(parts[1]['type'], 'street_name')
         assert_equals(parts[1]['value'], street_name)
-        assert_equals(parts[2]['type'], 'StreetNamePostType')
+        assert_equals(parts[2]['type'], 'street_name_post_type')
         assert_equals(parts[2]['value'], street_type)
-        assert_equals(parts[3]['type'], 'StreetNamePostDirectional')
+        assert_equals(parts[3]['type'], 'street_name_post_directional')
         assert_equals(parts[3]['value'], street_direction)
-        assert_equals(parts[4]['type'], 'PlaceName')        
+        assert_equals(parts[4]['type'], 'city_name')        
         assert_equals(parts[4]['value'], city)
-        assert_equals(parts[5]['type'], 'StateName')
+        assert_equals(parts[5]['type'], 'state_name')
         assert_equals(parts[5]['value'], state)
-        assert_equals(parts[6]['type'], 'ZipCode')
+        assert_equals(parts[6]['type'], 'zip_code')
         assert_equals(parts[6]['value'], zip)
 
     def test_parse_fail_no_address(self):
         """
-        GET /parse -> 400 with 'address' param is not present
+        API: GET /parse -> 400 with 'address' param is not present
         """
         # Test
         rv = self.app.get('/parse?method=tag')
@@ -129,7 +229,7 @@ class TestIntegration(object):
 
     def test_parse_with_method_tag(self):
         """
-        GET /parse -> 200 with 'method=tag'
+        API: GET /parse -> 200 with 'method=tag'
         """
         # Setup
         address = '1600 Pennsylvania Ave NW Washington DC 20006'
@@ -140,7 +240,7 @@ class TestIntegration(object):
 
     def test_parse_with_method_tag_fail_repeated_label_error(self):
         """
-        GET /parse -> 400 with 'method=tag' and address that raises RepeatedLabelError
+        API: GET /parse -> 400 with 'method=tag' and address that raises RepeatedLabelError
         """
         # Setup
         address = '1234 Main St. 1234 Main St., Sacramento, CA 95818'
@@ -155,7 +255,7 @@ class TestIntegration(object):
 
     def test_parse_with_method_parse(self):
         """
-        GET /parse -> 200 with 'method=parse'
+        API: GET /parse -> 200 with 'method=parse'
         """
         # Setup
         address = '1600 Pennsylvania Ave NW Washington DC 20006'
@@ -164,25 +264,9 @@ class TestIntegration(object):
         rv = self.app.get('/parse?address={}&method=parse'.format(address))
         assert_equals(200, rv.status_code)
 
-    def test_parse_with_method_invalid(self):
-        """
-        GET /parse -> 400 with invalid 'method' param value
-        """
-        # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
-        bad_method = 'bad'
-
-        # Test
-        rv = self.app.get('/parse?address={}&method={}'.format(address, bad_method))
-        data = json.loads(rv.data)
-
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_equals("Parsing method '{}' not supported.".format(bad_method), data['error'])
-
     def test_parse_batch_success(self):
         """
-        POST /parse -> 200 with just "addresses"
+        API: POST /parse -> 200 with just "addresses"
         """
         # Setup
         req_data = {
@@ -204,7 +288,7 @@ class TestIntegration(object):
 
     def test_parse_batch_with_failed_parse(self):
         """
-        POST /parse -> 200 with good and bad address strings
+        API: POST /parse -> 200 with good and bad address strings
         """
         # Setup
         req_data = {
@@ -225,7 +309,7 @@ class TestIntegration(object):
        
     def test_parse_batch_with_no_addresses(self):
         """
-        POST /parse -> 400 with no 'addresses' array
+        API: POST /parse -> 400 with no 'addresses' array
         """
         # Setup
         req_json = json.dumps({})
@@ -240,7 +324,7 @@ class TestIntegration(object):
 
     def test_parse_batch_with_too_many_addresses(self):
         """
-        POST /parse -> 400 with 'addresses' array too big 
+        API: POST /parse -> 400 with 'addresses' array too big 
         """
         # Setup
         req_data = {
@@ -260,27 +344,3 @@ class TestIntegration(object):
         assert_equals(400, resp.status_code)
         assert_equals(400, resp_data['statusCode'])
         assert_equals("'addresses' contained 4 elements, exceeding max of 3", resp_data['error'])
-
-    def test_parse_batch_with_method_invalid(self):
-        """
-        POST /parse -> 400 with invalid 'method' attribute value
-        """
-        # Setup
-        bad_method = 'bad'
-        req_data = {
-            'method': bad_method,
-            'addresses': [
-                '1600 Pennsylvania Ave NW Washington DC 20006',
-                '1234 Main St., Somewheresville, CA 91234'
-            ]
-        }
-        req_json = json.dumps(req_data)
-
-        # Test
-        resp = self.app.post('/parse', data=req_json)
-        resp_data = json.loads(resp.data)
-
-        assert_equals(400, resp.status_code)
-        assert_equals(400, resp_data['statusCode'])
-        assert_equals("Parsing method '{}' not supported.".format(bad_method), resp_data['error'])
-

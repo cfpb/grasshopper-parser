@@ -4,115 +4,115 @@ address_parts:
   # Unfiltered set of address parts.  Currently maps directly to usaddress parts.
   standard:
     - id: &address_number address_number
-      value: AddressNumber
+      usaddress: AddressNumber
       description: 'address number'
   
     - id: &address_number_prefix address_number_prefix
-      value: AddressNumberPrefix
+      usaddress: AddressNumberPrefix
       description: 'a modifier before an address number, e.g. "Mile", "#"'
   
     - id: &address_number_suffix address_number_suffix
-      value: AddressNumberSuffix
+      usaddress: AddressNumberSuffix
       description: 'a modifier after an address number, e.g "B", "1/2"'
   
     - id: &building_name building_name
-      value: BuildingName
+      usaddress: BuildingName
       description: 'the name of a building, e.g. "Atlanta Financial Center"'
   
     - id: &corner_of corner_of
-      value: CornerOf
+      usaddress: CornerOf
       description: 'words indicating that an address is a corner, e.g. "Junction", "corner of"'
   
     - id: &intersection_separator intersection_separator
-      value: IntersectionSeparator
+      usaddress: IntersectionSeparator
       description: 'a conjunction connecting parts of an intersection, e.g. "and", "&"'
   
     - id: &landmark_name landmark_name
-      value: LandmarkName
+      usaddress: LandmarkName
       description: 'the name of a landmark, e.g. "Wrigley Field", "Union Station"'
   
     - id: &not_address not_address
-      value: NotAddress
+      usaddress: NotAddress
       description: "a non-address component that doesn't refer to a recipient"
   
     - id: &occupancy_type occupancy_type
-      value: OccupancyType
+      usaddress: OccupancyType
       description: 'a type of occupancy within a building, e.g. "Suite", "Apt", "Floor"'
   
     - id: &occupancy_id occupancy_id
-      value: OccupancyIdentifier
+      usaddress: OccupancyIdentifier
       description: 'the identifier of an occupancy, often a number or letter'
   
     - id: &city_name city_name
-      value: PlaceName
+      usaddress: PlaceName
       description: 'city'
   
     - id: &recipient recipient
-      value: Recipient
+      usaddress: Recipient
       description: 'a non-address recipient, e.g. the name of a person/organization'
   
     - id: &state_name state_name
-      value: StateName
+      usaddress: StateName
       description: 'state'
  
     - id: &street_name street_name
-      value: StreetName
+      usaddress: StreetName
       description: 'street name, excluding type & direction'
   
     - id: &street_name_pre_directional street_name_pre_directional
-      value: StreetNamePreDirectional
+      usaddress: StreetNamePreDirectional
       description: 'a direction before a street name, e.g. "North", "S"'
   
     - id: &street_name_pre_modifier street_name_pre_modifier
-      value: StreetNamePreModifier
+      usaddress: StreetNamePreModifier
       description: 'a modifier before a street name that is not a direction, e.g. "Old"'
   
     - id: &street_name_pre_type street_name_pre_type
-      value: StreetNamePreType
+      usaddress: StreetNamePreType
       description: 'a street type that comes before a street name, e.g. "Route", "Ave"'
   
     - id: &street_name_post_directional street_name_post_directional
-      value: StreetNamePostDirectional
+      usaddress: StreetNamePostDirectional
       description: 'a direction after a street name, e.g. "North", "S"'
   
     - id: &street_name_post_modifier street_name_post_modifier
-      value: StreetNamePostModifier
+      usaddress: StreetNamePostModifier
       description: 'a modifier adter a street name, e.g. "Ext"'
   
     - id: &street_name_post_type street_name_post_type
-      value: StreetNamePostType
+      usaddress: StreetNamePostType
       description: 'a street type that comes after a street name, e.g. "Avenue", "Rd"'
   
     - id: &subaddress_id subaddress_id
-      value: SubaddressIdentifier
+      usaddress: SubaddressIdentifier
       description: 'the name/identifier of a subaddress component'
   
     - id: &subaddress_type subaddress_type
-      value: SubaddressType
+      usaddress: SubaddressType
       description: 'a level of detail in an address that is not an occupancy within a building, e.g. "Building", "Tower"'
   
     - id: &usps_box_group_id usps_box_group_id
-      value: USPSBoxGroupID
+      usaddress: USPSBoxGroupID
       description: 'the identifier of a USPS box group, usually a number'
   
     - id: &usps_box_group_type usps_box_group_type
-      value: USPSBoxGroupType
+      usaddress: USPSBoxGroupType
       description: 'a name for a group of USPS boxes, e.g. "R"'
   
     - id: &postal_box_id postal_box_id
-      value: USPSBoxID
+      usaddress: USPSBoxID
       description: 'the identifier of a USPS box, usually a number'
   
     - id: &usps_box_type usps_box_type
-      value: USPSBoxType
+      usaddress: USPSBoxType
       description: 'a USPS box, e.g. "P.O. Box"'
   
     - id: &zip_code zip_code
-      value: ZipCode
+      usaddress: ZipCode
       description: 'zip code'
 
   # Alternate address parts made up of multiple "standard" parts
-  aggregates:
+  derived:
     - id: &address_number_full address_number_full
       description: 'combination of all parts for a street address e.g. no "city", "state", "zip"'
       parts:

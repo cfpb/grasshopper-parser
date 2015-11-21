@@ -8,89 +8,128 @@ import pytz
 import usaddress
 import yaml
 
-UP_SINCE = datetime.now(pytz.utc).isoformat()
-HOSTNAME = platform.node()
-MAX_BATCH_SIZE = 5000
-
-with open("rules.yaml", 'r') as f:
-    rules_yaml= yaml.safe_load(f)
-
-
-STANDARD_PART_MAPPING = {x['value']: x['id'] for x in rules_yaml['address_parts']['standard']}
-AGGREGATE_PART_MAPPING = {x['id']: x['parts'] for x in rules_yaml['address_parts']['aggregates']}
-PROFILE_MAPPING = {x['id']: x['required'] for x in rules_yaml['profiles']}
-
-def parse_with_parse(addr_str):
+class AddressParserError(Exception):
     """
-    Translates an address string using usaddress's `parse()` function
-
-    See: http://usaddress.readthedocs.org/en/latest/#usage
+    Exception for any failures that occur during address parsing
     """
-    # usaddress parses free-text address into an array of tuples.
-    parsed = usaddress.parse(addr_str)
+    pass
 
-    addr_parts = [{'type': STANDARD_PART_MAPPING[v], 'value': k} for k,v in parsed]
-        
-    return addr_parts
-
-
-def parse_with_tag(addr_str):
+class USAddressParser(object):
     """
-    Translates an address string using usaddress's `tag()` function
-
-    See: http://usaddress.readthedocs.org/en/latest/#usage
+    Parser for translating address strings into the component parts
+    using datamade's usaddress library.
+ 
+    See: http://usaddress.readthedocs.org
     """
-    try:
-        # `tag` returns OrderedDict, ordered by address parts in original address string
-        tagged = usaddress.tag(addr_str)[0].items()
-    except usaddress.RepeatedLabelError:
-        
-        # FIXME: Add richer logging here with contents of `rle` or chain exception w/ Python 3
-        raise InvalidApiUsage("Could not parse address '{}' with 'tag' method".format(addr_str))
 
-    addr_parts = [{'type': STANDARD_PART_MAPPING[k], 'value': v} for k,v in tagged]
+    def __init__(self, rules=None, parse_method='tag'):
+        # Maps `method` arg to corresponding parse function
 
-    return addr_parts
+        parse_method_dispatch = {
+            'parse': self.parse_with_usaddress_parse, 
+            'tag': self.parse_with_usaddress_tag
+        }
+
+        try:
+            self.parse_function = parse_method_dispatch[parse_method]
+        except KeyError:
+            raise ValueError("Parse method '{}' not supported.".format(parse_method))
+
+        if rules:
+            self.rules = rules
+
+            # FIXME: Add real logging
+            from pprint import pprint
+            print('Using custom parsing rules:')
+            pprint(rules)
+        else:
+            # If rules not passed in on init, read default "rules.yaml" file
+            with open("rules.yaml", 'r') as f:
+                self.rules = yaml.safe_load(f)
+
+            print('Using default rules from "rules.yaml"')
 
 
-# Maps `method` param to corresponding parse function
-parse_method_dispatch = {'parse': parse_with_parse, 'tag': parse_with_tag}
+        # Initialized static mapping dicts
+        # FIXME: Need friendlier error messages when "rules" not well-formed
+        self.standard_part_mapping = {x['usaddress']: x['id'] for x in self.rules['address_parts']['standard']}
+        self.derived_part_mapping = {x['id']: x['parts'] for x in self.rules['address_parts']['derived']}
+        self.profile_mapping = {x['id']: x['required'] for x in self.rules['profiles']}
 
-def process_profile(profile_name, addr_parts):
-    """
-    Translates the address parts to profile-specific parts
-    """
-    try:
-        profile_part_types = PROFILE_MAPPING[profile_name]
-    except KeyError:
-        raise InvalidApiUsage("Parsing profile '{}' not supported".format(profile_name))
+    def parse_with_usaddress_parse(self, addr_str):        
+        """
+        Parses address string using usaddress's `parse()` function
+        """
+        parsed = usaddress.parse(addr_str)
+    
+        addr_parts = [{'type': self.standard_part_mapping[v], 'value': k} for k,v in parsed]
+            
+        return addr_parts
+    
+    def parse_with_usaddress_tag(self, addr_str):
+        """
+        Parses address string using usaddress's `tag()` function
+        """
+        try:
+            tagged = usaddress.tag(addr_str)[0].items()
+        except usaddress.RepeatedLabelError:
+            # FIXME: Add richer logging here with contents of `rle` or chain exception w/ Python 3
+            # FIXME: Shouldn't leak details of 'tag' method since it not longer a param
+            raise AddressParserError("Could not parse address '{}' with 'tag' method".format(addr_str))
+    
+        addr_parts = [{'type': self.standard_part_mapping[k], 'value': v} for k,v in tagged]
+    
+        return addr_parts
 
-    # Get "aggegate" address part types from "required"
-    aggr_part_types = filter(lambda x: AGGREGATE_PART_MAPPING.has_key(x), profile_part_types)
 
-    for aggr_part_type in aggr_part_types:
 
-        # Get all child address parts types for a given "aggregate"
-        child_part_types = AGGREGATE_PART_MAPPING[aggr_part_type]
+    def parse(self, addr_str, profile_name=None):
+        """
+        Parses an address string using usaddress, method  based on `parse_method` init arg
+        """
+        addr_parts = self.parse_function(addr_str)
+           
+        if profile_name:
+            addr_parts = self.process_profile(profile_name, addr_parts)
+            
+        return addr_parts
 
-        # Filter out all child parts not in current address
-        filtered_child_parts = filter(lambda x: x['type'] in child_part_types, addr_parts)
-        child_part_values = map(lambda x: x['value'], filtered_child_parts)
-       
-        # Build a space-separated string of all available child parts
-        aggr_part_value = " ".join(child_part_values)
 
-        addr_parts.append({'type': aggr_part_type, 'value': aggr_part_value})
-
-    # Validate all required fields are present
-    addr_part_types = map(lambda x: x['type'], addr_parts)
-    missing_parts = filter(lambda x: x not in addr_part_types, profile_part_types)
-
-    if missing_parts:
-        # FIXME: This should be its own Exception type
-        raise InvalidApiUsage("Could not parse out required address parts: {}".format(missing_parts))
-        
-    return addr_parts
+    def process_profile(self, profile_name, addr_parts):
+        """
+        Translates the address parts to profile-specific address parts
+        """
+        try:
+            profile_part_types = self.profile_mapping[profile_name]
+        except KeyError:
+            raise AddressParserError("Parsing profile '{}' not supported".format(profile_name))
+    
+        # Get "derived" address part types from "required"
+        derived_part_types = filter(lambda x: self.derived_part_mapping.has_key(x), profile_part_types)
+    
+        for derived_part_type in derived_part_types:
+    
+            # Get all child address parts types for a given "derived" part
+            child_part_types = self.derived_part_mapping[derived_part_type]
+    
+            # Filter out all child parts not in current address
+            filtered_child_parts = filter(lambda x: x['type'] in child_part_types, addr_parts)
+            child_part_values = map(lambda x: x['value'], filtered_child_parts)
+           
+            # Build a space-separated string of all available child parts
+            derived_part_value = " ".join(child_part_values)
+    
+            addr_parts.append({'type': derived_part_type, 'value': derived_part_value})
+    
+        # Validate all required fields are present
+        addr_part_types = map(lambda x: x['type'], addr_parts)
+        missing_parts = filter(lambda x: x not in addr_part_types, profile_part_types)
+    
+        if missing_parts:
+            # FIXME: Should extend AddressParserError with "missing_parts"
+            raise AddressParserError("Could not parse out required address parts: {}".format(missing_parts))
+            
+        return addr_parts
 
 
 class InvalidApiUsage(Exception):
@@ -108,6 +147,12 @@ class InvalidApiUsage(Exception):
         if status_code is not None:
             self.status_code = status_code
 
+
+# FIXME: Investigate using Flask's built-in configs
+UP_SINCE = datetime.now(pytz.utc).isoformat()
+HOSTNAME = platform.node()
+MAX_BATCH_SIZE = 5000
+PARSER = USAddressParser()
 
 app = Flask(__name__)
 
@@ -144,13 +189,7 @@ def parse():
     method = params.get('method', 'tag')
     profile = params.get('profile', None)
 
-    try:
-        addr_parts = parse_method_dispatch[method](addr_str)
-    except KeyError:
-        raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
-        
-    if profile:
-        addr_parts = process_profile(profile, addr_parts)
+    addr_parts = PARSER.parse(addr_str, profile)
 
     response = {
         'input': addr_str,
@@ -185,16 +224,10 @@ def parse_batch():
     
     for addr_str in addresses:
         try:
-            addr_parts = parse_method_dispatch[method](addr_str)
-
-            if profile:
-                addr_parts = add_profile_addr_parts(profile, addr_parts)
-
-        except KeyError:
-            raise InvalidApiUsage("Parsing method '{}' not supported.".format(method))
-        except InvalidApiUsage:
-            #FIXME: Logger does not work under Gunicorn
-            app.logger.warn('Could not parse address "{}"'.format(addr_str))
+            addr_parts = PARSER.parse(addr_str, profile)
+        except AddressParserError as ape:
+            # FIXME: Python3 chained exceptions would be helpful here.
+            app.logger.warn('Could not parse address "{}": {}'.format(addr_str, ape.message))
             failed.append(addr_str)
 
         parsed.append({
@@ -211,18 +244,24 @@ def parse_batch():
 
 
 def gen_error_json(message, code):
+    """
+    Builds standard JSON error message
+    """
     return jsonify({'error': message, 'statusCode': code}), code
 
 
-@app.errorhandler(InvalidApiUsage)
-def usage_error(error):
-    return gen_error_json(error.message, error.status_code)
-
-
+# Register all Flask error handlers
 @app.errorhandler(404)
 def not_found_error(error):
     return gen_error_json('Resource not found', 404)
 
+@app.errorhandler(AddressParserError)
+def parser_erro(error):
+    return gen_error_json(error.message, 400)
+
+@app.errorhandler(InvalidApiUsage)
+def usage_error(error):
+    return gen_error_json(error.message, error.status_code)
 
 @app.errorhandler(Exception)
 def default_error(error):
