@@ -14,4 +14,3 @@ errorlog = "-"
 #   http://gunicorn-docs.readthedocs.org/en/latest/settings.html#forwarded-allow-ips
 #   http://gunicorn-docs.readthedocs.org/en/latest/deploy.html
 forwarded_allow_ips = "*"
-

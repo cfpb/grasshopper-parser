@@ -8,17 +8,19 @@ import pytz
 import usaddress
 import yaml
 
+
 class AddressParserError(Exception):
     """
     Exception for any failures that occur during address parsing
     """
     pass
 
+
 class USAddressParser(object):
     """
     Parser for translating address strings into the component parts
     using datamade's usaddress library.
- 
+
     See: http://usaddress.readthedocs.org
     """
 
@@ -26,7 +28,7 @@ class USAddressParser(object):
         # Maps `method` arg to corresponding parse function
 
         parse_method_dispatch = {
-            'parse': self.parse_with_usaddress_parse, 
+            'parse': self.parse_with_usaddress_parse,
             'tag': self.parse_with_usaddress_tag
         }
 
@@ -49,23 +51,22 @@ class USAddressParser(object):
 
             print('Using default rules from "rules.yaml"')
 
-
         # Initialized static mapping dicts
         # FIXME: Need friendlier error messages when "rules" not well-formed
         self.standard_part_mapping = {x['usaddress']: x['id'] for x in self.rules['address_parts']['standard']}
         self.derived_part_mapping = {x['id']: x['parts'] for x in self.rules['address_parts']['derived']}
         self.profile_mapping = {x['id']: x['required'] for x in self.rules['profiles']}
 
-    def parse_with_usaddress_parse(self, addr_str):        
+    def parse_with_usaddress_parse(self, addr_str):
         """
         Parses address string using usaddress's `parse()` function
         """
         parsed = usaddress.parse(addr_str)
-    
-        addr_parts = [{'type': self.standard_part_mapping[v], 'value': k} for k,v in parsed]
-            
+
+        addr_parts = [{'type': self.standard_part_mapping[v], 'value': k} for k, v in parsed]
+
         return addr_parts
-    
+
     def parse_with_usaddress_tag(self, addr_str):
         """
         Parses address string using usaddress's `tag()` function
@@ -76,23 +77,21 @@ class USAddressParser(object):
             # FIXME: Add richer logging here with contents of `rle` or chain exception w/ Python 3
             # FIXME: Shouldn't leak details of 'tag' method since it not longer a param
             raise AddressParserError("Could not parse address '{}' with 'tag' method".format(addr_str))
-    
-        addr_parts = [{'type': self.standard_part_mapping[k], 'value': v} for k,v in tagged]
-    
-        return addr_parts
 
+        addr_parts = [{'type': self.standard_part_mapping[k], 'value': v} for k, v in tagged]
+
+        return addr_parts
 
     def parse(self, addr_str, profile_name=None):
         """
         Parses an address string using usaddress, method  based on `parse_method` init arg
         """
         addr_parts = self.parse_function(addr_str)
-           
+
         if profile_name:
             addr_parts = self.process_profile(profile_name, addr_parts)
-            
-        return addr_parts
 
+        return addr_parts
 
     def process_profile(self, profile_name, addr_parts):
         """
@@ -102,32 +101,32 @@ class USAddressParser(object):
             profile_part_types = self.profile_mapping[profile_name]
         except KeyError:
             raise AddressParserError("Parsing profile '{}' not supported".format(profile_name))
-    
+
         # Get "derived" address part types from "required"
-        derived_part_types = filter(lambda x: self.derived_part_mapping.has_key(x), profile_part_types)
-    
+        derived_part_types = filter(lambda x: x in self.derived_part_mapping, profile_part_types)
+
         for derived_part_type in derived_part_types:
-    
+
             # Get all child address parts types for a given "derived" part
             child_part_types = self.derived_part_mapping[derived_part_type]
-    
+
             # Filter out all child parts not in current address
             filtered_child_parts = filter(lambda x: x['type'] in child_part_types, addr_parts)
             child_part_values = map(lambda x: x['value'], filtered_child_parts)
-           
+
             # Build a space-separated string of all available child parts
             derived_part_value = " ".join(child_part_values)
-    
+
             addr_parts.append({'type': derived_part_type, 'value': derived_part_value})
-    
+
         # Validate all required fields are present
         addr_part_types = map(lambda x: x['type'], addr_parts)
         missing_parts = filter(lambda x: x not in addr_part_types, profile_part_types)
-    
+
         if missing_parts:
             # FIXME: Should extend AddressParserError with "missing_parts"
             raise AddressParserError("Could not parse out required address parts: {}".format(missing_parts))
-            
+
         return addr_parts
 
 
@@ -218,7 +217,7 @@ def parse_batch():
 
     parsed = []
     failed = []
-    
+
     for addr_str in addresses:
         try:
             addr_parts = PARSER.parse(addr_str, profile)
@@ -233,7 +232,7 @@ def parse_batch():
         })
 
     response = {
-        'parsed': parsed, 
+        'parsed': parsed,
         'failed': failed
     }
 
@@ -252,13 +251,16 @@ def gen_error_json(message, code):
 def not_found_error(error):
     return gen_error_json('Resource not found', 404)
 
+
 @app.errorhandler(AddressParserError)
 def parser_erro(error):
     return gen_error_json(error.message, 400)
 
+
 @app.errorhandler(InvalidApiUsage)
 def usage_error(error):
     return gen_error_json(error.message, error.status_code)
+
 
 @app.errorhandler(Exception)
 def default_error(error):

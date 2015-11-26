@@ -9,6 +9,7 @@ import yaml
 # Hack to get nose asserts to give diff against large lists
 assert_equals.__self__.maxDiff = None
 
+
 class TestUSAddressParser(object):
 
     def setup(self):
@@ -46,11 +47,11 @@ class TestUSAddressParser(object):
 
         # Test
         with assert_raises(ValueError) as context:
-            parser = app.USAddressParser(parse_method=parse_method)
+            app.USAddressParser(parse_method=parse_method)
 
         err_msg = context.exception.message
         assert_equals(err_msg, "Parse method '{}' not supported.".format(parse_method))
-         
+
     def test_init_with_rules_valid(self):
         """
         PARSER: init - with valid rules
@@ -97,7 +98,7 @@ class TestUSAddressParser(object):
         expected = [
             {'type': 'address_number', 'value': u'1234'},
             {'type': 'street_name', 'value': u'Main'},
-            {'type': 'street_name_post_type', 'value': u'St.'}, # Strips comma
+            {'type': 'street_name_post_type', 'value': u'St.'},  # Strips comma
             {'type': 'city_name', 'value': u'Sacramento'},
             {'type': 'state_name', 'value': u'CA'},
             {'type': 'zip_code', 'value': u'95818'}
@@ -167,7 +168,7 @@ class TestAPI(object):
         """
         # Setup
         url = '/bad-resource'
-        
+
         # Test
         rv = self.app.get(url)
         data = json.loads(rv.data)
@@ -193,7 +194,7 @@ class TestAPI(object):
                 {'type': 'state_name', 'value': 'DC'},
                 {'type': 'zip_code', 'value': '20006'}
             ]}
-        
+
         # Test
         rv = self.app.get('/parse?address={}'.format(addr_str))
         actual = json.loads(rv.data)
@@ -201,7 +202,7 @@ class TestAPI(object):
 
         assert_equals(200, status_code)
         assert_equals(expected, actual)
-        
+
     def test_parse_with_profile_success(self):
         """
         API: GET /parse -> 200 with address and profile
@@ -222,7 +223,7 @@ class TestAPI(object):
                 {'type': 'address_number_full', 'value': '1600'},
                 {'type': 'street_name_full', 'value': 'Pennsylvania Ave NW'}
             ]}
-        
+
         # Test
         rv = self.app.get('/parse?address={}&profile={}'.format(addr_str, profile))
         actual = json.loads(rv.data)
@@ -238,7 +239,7 @@ class TestAPI(object):
         # Setup
         profile = 'bad'
         expected = {
-            'statusCode': 400, 
+            'statusCode': 400,
             'error': "Parsing profile '{}' not supported".format(profile)
         }
         addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
@@ -321,25 +322,25 @@ class TestAPI(object):
         assert_equals(200, resp.status_code)
         assert_equals(resp_data['failed'][0], '5 Arapahoe Plaza El Paso TX 88530')
         assert_equals(resp_data['parsed'][0]['input'], '1600 Pennsylvania Ave NW Washington DC 20006')
-       
+
     def test_parse_batch_with_no_addresses(self):
         """
         API: POST /parse -> 400 with no 'addresses' array
         """
         # Setup
         req_json = json.dumps({})
-        
+
         # Test
         resp = self.app.post('/parse', data=req_json)
         resp_data = json.loads(resp.data)
 
         assert_equals(400, resp.status_code)
         assert_equals(400, resp_data['statusCode'])
-        assert_equals("'addresses' array not populated", resp_data['error'])       
+        assert_equals("'addresses' array not populated", resp_data['error'])
 
     def test_parse_batch_with_too_many_addresses(self):
         """
-        API: POST /parse -> 400 with 'addresses' array too big 
+        API: POST /parse -> 400 with 'addresses' array too big
         """
         # Setup
         req_data = {
@@ -351,7 +352,7 @@ class TestAPI(object):
             ]
         }
         req_json = json.dumps(req_data)
-       
+
         # Test
         resp = self.app.post('/parse', data=req_json)
         resp_data = json.loads(resp.data)
