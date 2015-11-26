@@ -63,7 +63,7 @@ class USAddressParser(object):
         """
         parsed = usaddress.parse(addr_str)
 
-        addr_parts = [{'type': self.standard_part_mapping[v], 'value': k} for k, v in parsed]
+        addr_parts = [{'code': self.standard_part_mapping[v], 'value': k} for k, v in parsed]
 
         return addr_parts
 
@@ -78,7 +78,7 @@ class USAddressParser(object):
             # FIXME: Shouldn't leak details of 'tag' method since it not longer a param
             raise AddressParserError("Could not parse address '{}' with 'tag' method".format(addr_str))
 
-        addr_parts = [{'type': self.standard_part_mapping[k], 'value': v} for k, v in tagged]
+        addr_parts = [{'code': self.standard_part_mapping[k], 'value': v} for k, v in tagged]
 
         return addr_parts
 
@@ -111,16 +111,16 @@ class USAddressParser(object):
             child_part_types = self.derived_part_mapping[derived_part_type]
 
             # Filter out all child parts not in current address
-            filtered_child_parts = filter(lambda x: x['type'] in child_part_types, addr_parts)
+            filtered_child_parts = filter(lambda x: x['code'] in child_part_types, addr_parts)
             child_part_values = map(lambda x: x['value'], filtered_child_parts)
 
             # Build a space-separated string of all available child parts
             derived_part_value = " ".join(child_part_values)
 
-            addr_parts.append({'type': derived_part_type, 'value': derived_part_value})
+            addr_parts.append({'code': derived_part_type, 'value': derived_part_value})
 
         # Validate all required fields are present
-        addr_part_types = map(lambda x: x['type'], addr_parts)
+        addr_part_types = map(lambda x: x['code'], addr_parts)
         missing_parts = filter(lambda x: x not in addr_part_types, profile_part_types)
 
         if missing_parts:

@@ -76,12 +76,12 @@ class TestUSAddressParser(object):
         # Setup
         addr_str = '1234 Main St., Sacramento CA 95818'
         expected = [
-            {'type': 'address_number', 'value': u'1234'},
-            {'type': 'street_name', 'value': u'Main'},
-            {'type': 'street_name_post_type', 'value': u'St.,'},
-            {'type': 'city_name', 'value': u'Sacramento'},
-            {'type': 'state_name', 'value': u'CA'},
-            {'type': 'zip_code', 'value': u'95818'}
+            {'code': 'address_number', 'value': u'1234'},
+            {'code': 'street_name', 'value': u'Main'},
+            {'code': 'street_name_post_type', 'value': u'St.,'},
+            {'code': 'city_name', 'value': u'Sacramento'},
+            {'code': 'state_name', 'value': u'CA'},
+            {'code': 'zip_code', 'value': u'95818'}
         ]
         cut = app.USAddressParser()
 
@@ -96,12 +96,12 @@ class TestUSAddressParser(object):
         # Setup
         addr_str = '1234 Main St., Sacramento CA 95818'
         expected = [
-            {'type': 'address_number', 'value': u'1234'},
-            {'type': 'street_name', 'value': u'Main'},
-            {'type': 'street_name_post_type', 'value': u'St.'},  # Strips comma
-            {'type': 'city_name', 'value': u'Sacramento'},
-            {'type': 'state_name', 'value': u'CA'},
-            {'type': 'zip_code', 'value': u'95818'}
+            {'code': 'address_number', 'value': u'1234'},
+            {'code': 'street_name', 'value': u'Main'},
+            {'code': 'street_name_post_type', 'value': u'St.'},  # Strips comma
+            {'code': 'city_name', 'value': u'Sacramento'},
+            {'code': 'state_name', 'value': u'CA'},
+            {'code': 'zip_code', 'value': u'95818'}
         ]
         cut = app.USAddressParser()
 
@@ -186,13 +186,13 @@ class TestAPI(object):
         expected = {
             'input': addr_str,
             'parts': [
-                {'type': 'address_number', 'value': '1600'},
-                {'type': 'street_name', 'value': 'Pennsylvania'},
-                {'type': 'street_name_post_type', 'value': 'Ave'},
-                {'type': 'street_name_post_directional', 'value': 'NW'},
-                {'type': 'city_name', 'value': 'Washington'},
-                {'type': 'state_name', 'value': 'DC'},
-                {'type': 'zip_code', 'value': '20006'}
+                {'code': 'address_number', 'value': '1600'},
+                {'code': 'street_name', 'value': 'Pennsylvania'},
+                {'code': 'street_name_post_type', 'value': 'Ave'},
+                {'code': 'street_name_post_directional', 'value': 'NW'},
+                {'code': 'city_name', 'value': 'Washington'},
+                {'code': 'state_name', 'value': 'DC'},
+                {'code': 'zip_code', 'value': '20006'}
             ]}
 
         # Test
@@ -213,15 +213,15 @@ class TestAPI(object):
         expected = {
             'input': addr_str,
             'parts': [
-                {'type': 'address_number', 'value': '1600'},
-                {'type': 'street_name', 'value': 'Pennsylvania'},
-                {'type': 'street_name_post_type', 'value': 'Ave'},
-                {'type': 'street_name_post_directional', 'value': 'NW'},
-                {'type': 'city_name', 'value': 'Washington'},
-                {'type': 'state_name', 'value': 'DC'},
-                {'type': 'zip_code', 'value': '20006'},
-                {'type': 'address_number_full', 'value': '1600'},
-                {'type': 'street_name_full', 'value': 'Pennsylvania Ave NW'}
+                {'code': 'address_number', 'value': '1600'},
+                {'code': 'street_name', 'value': 'Pennsylvania'},
+                {'code': 'street_name_post_type', 'value': 'Ave'},
+                {'code': 'street_name_post_directional', 'value': 'NW'},
+                {'code': 'city_name', 'value': 'Washington'},
+                {'code': 'state_name', 'value': 'DC'},
+                {'code': 'zip_code', 'value': '20006'},
+                {'code': 'address_number_full', 'value': '1600'},
+                {'code': 'street_name_full', 'value': 'Pennsylvania Ave NW'}
             ]}
 
         # Test
