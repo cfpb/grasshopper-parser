@@ -1,0 +1,148 @@
+# Address Parsing Rules 
+address_parts:
+
+  # Unfiltered set of address parts.  Currently maps directly to usaddress parts.
+  standard:
+    - id: &address_number address_number
+      usaddress: AddressNumber
+      description: 'address number'
+  
+    - id: &address_number_prefix address_number_prefix
+      usaddress: AddressNumberPrefix
+      description: 'a modifier before an address number, e.g. "Mile", "#"'
+  
+    - id: &address_number_suffix address_number_suffix
+      usaddress: AddressNumberSuffix
+      description: 'a modifier after an address number, e.g "B", "1/2"'
+  
+    - id: &building_name building_name
+      usaddress: BuildingName
+      description: 'the name of a building, e.g. "Atlanta Financial Center"'
+  
+    - id: &corner_of corner_of
+      usaddress: CornerOf
+      description: 'words indicating that an address is a corner, e.g. "Junction", "corner of"'
+  
+    - id: &intersection_separator intersection_separator
+      usaddress: IntersectionSeparator
+      description: 'a conjunction connecting parts of an intersection, e.g. "and", "&"'
+  
+    - id: &landmark_name landmark_name
+      usaddress: LandmarkName
+      description: 'the name of a landmark, e.g. "Wrigley Field", "Union Station"'
+  
+    - id: &not_address not_address
+      usaddress: NotAddress
+      description: "a non-address component that doesn't refer to a recipient"
+  
+    - id: &occupancy_type occupancy_type
+      usaddress: OccupancyType
+      description: 'a type of occupancy within a building, e.g. "Suite", "Apt", "Floor"'
+  
+    - id: &occupancy_id occupancy_id
+      usaddress: OccupancyIdentifier
+      description: 'the identifier of an occupancy, often a number or letter'
+  
+    - id: &city_name city_name
+      usaddress: PlaceName
+      description: 'city'
+  
+    - id: &recipient recipient
+      usaddress: Recipient
+      description: 'a non-address recipient, e.g. the name of a person/organization'
+  
+    - id: &state_name state_name
+      usaddress: StateName
+      description: 'state'
+ 
+    - id: &street_name street_name
+      usaddress: StreetName
+      description: 'street name, excluding type & direction'
+  
+    - id: &street_name_pre_directional street_name_pre_directional
+      usaddress: StreetNamePreDirectional
+      description: 'a direction before a street name, e.g. "North", "S"'
+  
+    - id: &street_name_pre_modifier street_name_pre_modifier
+      usaddress: StreetNamePreModifier
+      description: 'a modifier before a street name that is not a direction, e.g. "Old"'
+  
+    - id: &street_name_pre_type street_name_pre_type
+      usaddress: StreetNamePreType
+      description: 'a street type that comes before a street name, e.g. "Route", "Ave"'
+  
+    - id: &street_name_post_directional street_name_post_directional
+      usaddress: StreetNamePostDirectional
+      description: 'a direction after a street name, e.g. "North", "S"'
+  
+    - id: &street_name_post_modifier street_name_post_modifier
+      usaddress: StreetNamePostModifier
+      description: 'a modifier adter a street name, e.g. "Ext"'
+  
+    - id: &street_name_post_type street_name_post_type
+      usaddress: StreetNamePostType
+      description: 'a street type that comes after a street name, e.g. "Avenue", "Rd"'
+  
+    - id: &subaddress_id subaddress_id
+      usaddress: SubaddressIdentifier
+      description: 'the name/identifier of a subaddress component'
+  
+    - id: &subaddress_type subaddress_type
+      usaddress: SubaddressType
+      description: 'a level of detail in an address that is not an occupancy within a building, e.g. "Building", "Tower"'
+  
+    - id: &usps_box_group_id usps_box_group_id
+      usaddress: USPSBoxGroupID
+      description: 'the identifier of a USPS box group, usually a number'
+  
+    - id: &usps_box_group_type usps_box_group_type
+      usaddress: USPSBoxGroupType
+      description: 'a name for a group of USPS boxes, e.g. "R"'
+  
+    - id: &postal_box_id postal_box_id
+      usaddress: USPSBoxID
+      description: 'the identifier of a USPS box, usually a number'
+  
+    - id: &usps_box_type usps_box_type
+      usaddress: USPSBoxType
+      description: 'a USPS box, e.g. "P.O. Box"'
+  
+    - id: &zip_code zip_code
+      usaddress: ZipCode
+      description: 'zip code'
+
+  # Alternate address parts made up of multiple "standard" parts
+  derived:
+    - id: &address_number_full address_number_full
+      description: 'combination of all parts for a street address e.g. no "city", "state", "zip"'
+      parts:
+        - *address_number_prefix
+        - *address_number
+        - *address_number_suffix
+
+    - id: &street_name_full street_name_full
+      description: 'a modifier adter a street name, e.g. "Ext"'
+      parts:
+        - *street_name_pre_directional
+        - *street_name_pre_modifier
+        - *street_name_pre_type
+        - *street_name
+        - *street_name_post_type
+        - *street_name_post_directional
+        - *street_name_post_modifier
+  
+# Alternate parsing rulesets
+profiles:
+  - id: grasshopper
+    required:
+      - *address_number_full
+      - *street_name_full
+      - *state_name
+      - *zip_code
+    # TODO: "optional" may be useful if we start excluding all other parts
+    # optional:
+    #  - *city_name
+    # TODO: Include "invalid" address parts for added validation
+    # invalid:
+    #  - *corner_of
+    #  - *intersection_indicator

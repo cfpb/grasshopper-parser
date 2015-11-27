@@ -3,18 +3,123 @@ Unit and integration tests for grasshopper-parser
 """
 import app
 from flask import json
-from nose.tools import assert_equals, assert_true
+from nose.tools import assert_equals, assert_false, assert_raises, assert_true
+import yaml
+
+# Hack to get nose asserts to give diff against large lists
+assert_equals.__self__.maxDiff = None
 
 
-class TestIntegration(object):
+class TestUSAddressParser(object):
 
     def setup(self):
+        with open("rules.yaml", 'r') as f:
+            self.yaml_rules = yaml.safe_load(f)
+
+    def test_init_default(self):
+        """
+        PARSER: init - default
+        """
+        # Setup
+        cut = app.USAddressParser()
+
+        # Test
+        assert_equals(cut.rules, self.yaml_rules)
+        assert_equals(cut.parse_function.__name__, 'parse_with_usaddress_tag')
+
+    def test_init_with_parse_method(self):
+        """
+        PARSER: init - with valid parse_method
+        """
+        # Setup
+        parser = app.USAddressParser(parse_method='parse')
+
+        # Test
+        assert_equals(parser.rules, self.yaml_rules)
+        assert_equals(parser.parse_function.__name__, 'parse_with_usaddress_parse')
+
+    def test_init_with_parse_method_invalid(self):
+        """
+        PARSER: init - with invalid parse_method
+        """
+        # Setup
+        parse_method = 'bad'
+
+        # Test
+        with assert_raises(ValueError) as context:
+            app.USAddressParser(parse_method=parse_method)
+
+        err_msg = context.exception.message
+        assert_equals(err_msg, "Parse method '{}' not supported.".format(parse_method))
+
+    def test_init_with_rules_valid(self):
+        """
+        PARSER: init - with valid rules
+        """
+        # Setup
+        rules = {
+            'address_parts': {
+                'standard': {},
+                'derived': {}
+            },
+            'profiles': {}
+        }
+
+        # Test
+        parser = app.USAddressParser(rules=rules)
+        parser.rules = rules
+
+    def test_parse_with_usaddress_parse(self):
+        """
+        PARSER: usaddress `parse` function
+        """
+        # Setup
+        addr_str = '1234 Main St., Sacramento CA 95818'
+        expected = [
+            {'code': 'address_number', 'value': u'1234'},
+            {'code': 'street_name', 'value': u'Main'},
+            {'code': 'street_name_post_type', 'value': u'St.,'},
+            {'code': 'city_name', 'value': u'Sacramento'},
+            {'code': 'state_name', 'value': u'CA'},
+            {'code': 'zip_code', 'value': u'95818'}
+        ]
+        cut = app.USAddressParser()
+
+        # Test
+        actual = cut.parse_with_usaddress_parse(addr_str)
+        assert_equals(actual, expected)
+
+    def test_parse_with_usaddress_tag(self):
+        """
+        PARSER: usaddress `tag` function
+        """
+        # Setup
+        addr_str = '1234 Main St., Sacramento CA 95818'
+        expected = [
+            {'code': 'address_number', 'value': u'1234'},
+            {'code': 'street_name', 'value': u'Main'},
+            {'code': 'street_name_post_type', 'value': u'St.'},  # Strips comma
+            {'code': 'city_name', 'value': u'Sacramento'},
+            {'code': 'state_name', 'value': u'CA'},
+            {'code': 'zip_code', 'value': u'95818'}
+        ]
+        cut = app.USAddressParser()
+
+        # Test
+        actual = cut.parse_with_usaddress_tag(addr_str)
+        assert_equals(actual, expected)
+
+
+class TestAPI(object):
+
+    def setup(self):
+        app.MAX_BATCH_SIZE = 3
         app.app.config['TESTING'] = True
         self.app = app.app.test_client()
 
     def test_status(self):
         """
-        / - simple request
+        API: GET / -> 200 with service status
         """
         # Setup
         from datetime import datetime
@@ -47,7 +152,7 @@ class TestIntegration(object):
 
     def test_internal_error(self):
         """
-        /explode - 500 on internal error
+        API: GET /explode -> 500 on internal error
         """
         # Test
         rv = self.app.get('/explode')
@@ -55,48 +160,104 @@ class TestIntegration(object):
 
         assert_equals(500, rv.status_code)
         assert_equals(500, data['statusCode'])
-        assert_equals("Hey!  Don't do that!", data['error'])
+        assert_equals("Internal server error", data['error'])
+
+    def test_resource_not_found(self):
+        """
+        API: GET /bad-resource -> 404 on resource not found
+        """
+        # Setup
+        url = '/bad-resource'
+
+        # Test
+        rv = self.app.get(url)
+        data = json.loads(rv.data)
+
+        assert_equals(404, rv.status_code)
+        assert_equals(404, data['statusCode'])
+        assert_equals("Resource not found", data['error'])
 
     def test_parse_success(self):
         """
-        /parse - 200 with just address, and parses correctly
+        API: GET /parse -> 200 with just address
         """
         # Setup
-        addr_number = '1600'
-        street_name = 'Pennsylvania'
-        street_type = 'Ave'
-        street_direction = 'NW'
-        city = 'Washington'
-        state = 'DC'
-        zip = '20006'
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
+        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
+        expected = {
+            'input': addr_str,
+            'parts': [
+                {'code': 'address_number', 'value': '1600'},
+                {'code': 'street_name', 'value': 'Pennsylvania'},
+                {'code': 'street_name_post_type', 'value': 'Ave'},
+                {'code': 'street_name_post_directional', 'value': 'NW'},
+                {'code': 'city_name', 'value': 'Washington'},
+                {'code': 'state_name', 'value': 'DC'},
+                {'code': 'zip_code', 'value': '20006'}
+            ]}
 
         # Test
-        rv = self.app.get('/parse?address={}'.format(address))
-        data = json.loads(rv.data)
+        rv = self.app.get('/parse?address={}'.format(addr_str))
+        actual = json.loads(rv.data)
         status_code = rv.status_code
 
         assert_equals(200, status_code)
+        assert_equals(expected, actual)
 
-        assert_equals(data['input'], address)
+    def test_parse_with_profile_success(self):
+        """
+        API: GET /parse -> 200 with address and profile
+        """
+        # Setup
+        profile = 'grasshopper'
+        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
+        expected = {
+            'input': addr_str,
+            'parts': [
+                {'code': 'address_number', 'value': '1600'},
+                {'code': 'street_name', 'value': 'Pennsylvania'},
+                {'code': 'street_name_post_type', 'value': 'Ave'},
+                {'code': 'street_name_post_directional', 'value': 'NW'},
+                {'code': 'city_name', 'value': 'Washington'},
+                {'code': 'state_name', 'value': 'DC'},
+                {'code': 'zip_code', 'value': '20006'},
+                {'code': 'address_number_full', 'value': '1600'},
+                {'code': 'street_name_full', 'value': 'Pennsylvania Ave NW'}
+            ]}
 
-        parts = data['parts']
+        # Test
+        rv = self.app.get('/parse?address={}&profile={}'.format(addr_str, profile))
+        actual = json.loads(rv.data)
+        status_code = rv.status_code
 
-        # WARN: These asserts have the potential to fail if we retrain the parser
-        assert_equals(parts['AddressNumber'], addr_number)
-        assert_equals(parts['PlaceName'], city)
-        assert_equals(parts['StateName'], state)
-        assert_equals(parts['StreetName'], street_name)
-        assert_equals(parts['StreetNamePostDirectional'], street_direction)
-        assert_equals(parts['StreetNamePostType'], street_type)
-        assert_equals(parts['ZipCode'], zip)
+        assert_equals(200, status_code)
+        assert_equals(expected, actual)
+
+    def test_parse_with_invalid_profile(self):
+        """
+        API: GET /parse -> 400 with invalid profile
+        """
+        # Setup
+        profile = 'bad'
+        expected = {
+            'statusCode': 400,
+            'error': "Parsing profile '{}' not supported".format(profile)
+        }
+        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
+
+        # Test
+        rv = self.app.get('/parse?address={}&profile={}'.format(addr_str, profile))
+        actual = json.loads(rv.data)
+        status_code = rv.status_code
+
+        assert_equals(400, status_code)
+        assert_equals(expected, actual)
 
     def test_parse_fail_no_address(self):
         """
-        /parse - 400 with 'address' param is not present
+        API: GET /parse -> 400 with 'address' param is not present
         """
         # Test
-        rv = self.app.get('/parse?method=tag&validate=true')
+        rv = self.app.get('/parse?method=tag')
         data = json.loads(rv.data)
 
         assert_equals(400, rv.status_code)
@@ -104,145 +265,98 @@ class TestIntegration(object):
 
         assert_equals("'address' query param is required.", data['error'])
 
-    def test_parse_with_method_tag(self):
+    def test_parse_fail_with_repeated_label_error(self):
         """
-        /parse - 200 with 'method=tag'
-        """
-        # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
-
-        # Test
-        rv = self.app.get('/parse?address={}&method=tag'.format(address))
-        assert_equals(200, rv.status_code)
-
-    def test_parse_with_method_tag_fail_repeated_label_error(self):
-        """
-        /parse - 400 with 'method=tag' and address that raises RepeatedLabelError
+        API: GET /parse -> 400 with 'method=tag' and address that raises RepeatedLabelError
         """
         # Setup
         address = '1234 Main St. 1234 Main St., Sacramento, CA 95818'
 
         # Test
-        rv = self.app.get('/parse?address={}&method=tag'.format(address))
+        rv = self.app.get('/parse?address={}'.format(address))
         data = json.loads(rv.data)
 
         assert_equals(400, rv.status_code)
         assert_equals(400, data['statusCode'])
         assert_equals("Could not parse address '{}' with 'tag' method".format(address), data['error'])
 
-    def test_parse_with_method_parse(self):
+    def test_parse_batch_success(self):
         """
-        /parse - 200 with 'method=parse'
+        API: POST /parse -> 200 with just "addresses"
         """
         # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
+        req_data = {
+            'addresses': [
+                '1600 Pennsylvania Ave NW Washington DC 20006',
+                '1234 Main St., Somewheresville, CA 91234'
+            ]
+        }
+        req_json = json.dumps(req_data)
 
         # Test
-        rv = self.app.get('/parse?address={}&method=parse'.format(address))
-        assert_equals(200, rv.status_code)
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
 
-    def test_parse_with_method_invalid(self):
+        assert_equals(200, resp.status_code)
+        assert_false(resp_data['failed'])
+        assert_equals(len(req_data['addresses']), len(resp_data['parsed']))
+        assert_equals(len(resp_data['parsed'][0]['parts']), 7)
+
+    def test_parse_batch_with_failed_parse(self):
         """
-        /parse - 400 with invalid 'method' param value
+        API: POST /parse -> 200 with good and bad address strings
         """
         # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
-        bad_method = 'bad'
+        req_data = {
+            'addresses': [
+                '1600 Pennsylvania Ave NW Washington DC 20006',
+                '5 Arapahoe Plaza El Paso TX 88530'
+            ]
+        }
+        req_json = json.dumps(req_data)
 
         # Test
-        rv = self.app.get('/parse?address={}&method={}'.format(address, bad_method))
-        data = json.loads(rv.data)
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
 
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_equals("Parsing method '{}' not supported.".format(bad_method), data['error'])
+        assert_equals(200, resp.status_code)
+        assert_equals(resp_data['failed'][0], '5 Arapahoe Plaza El Paso TX 88530')
+        assert_equals(resp_data['parsed'][0]['input'], '1600 Pennsylvania Ave NW Washington DC 20006')
 
-    def test_parse_with_validate_success(self):
+    def test_parse_batch_with_no_addresses(self):
         """
-        /parse - 200 with 'validate=true' and valid address
+        API: POST /parse -> 400 with no 'addresses' array
         """
         # Setup
-        address = '1600 Pennsylvania Ave NW Washington DC 20006'
+        req_json = json.dumps({})
 
         # Test
-        rv = self.app.get('/parse?address={}&validate=true'.format(address))
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
 
-        assert_equals(200, rv.status_code)
+        assert_equals(400, resp.status_code)
+        assert_equals(400, resp_data['statusCode'])
+        assert_equals("'addresses' array not populated", resp_data['error'])
 
-    def test_parse_with_validate_fail_incomplete(self):
+    def test_parse_batch_with_too_many_addresses(self):
         """
-        /parse - 400 with 'validate=true' and incomplete address
+        API: POST /parse -> 400 with 'addresses' array too big
         """
         # Setup
-        address_no_zip = '1600 Pennsylvania Ave NW Washington DC'
+        req_data = {
+            'addresses': [
+                'address1',
+                'address2',
+                'address3',
+                'address4'
+            ]
+        }
+        req_json = json.dumps(req_data)
 
         # Test
-        rv = self.app.get('/parse?address={}&validate=true'.format(address_no_zip))
-        data = json.loads(rv.data)
+        resp = self.app.post('/parse', data=req_json)
+        resp_data = json.loads(resp.data)
 
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_equals("Parsed address does not include required address part(s): ['ZipCode']", data['error'])
-
-    def test_parse_with_validate_fail_invalid_parts(self):
-        """
-        /parse - 400 with 'validate=true' and invalid address
-        """
-        # Setup
-        address_po_box = 'P.O Box 12345 Washington DC 20006'
-
-        # Test
-        rv = self.app.get('/parse?address={}&validate=true'.format(address_po_box))
-        data = json.loads(rv.data)
-
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_true(data['error'].startswith("Parsed address includes invalid address part(s): ['USPSBox"))
-
-    def test_standardize_success(self):
-        """
-        /standardize - 200 with standard address string
-        """
-        # Setup
-        addr_str = '1600 Pennsylvania Ave NW Washington DC 20006'
-        # Setup
-        addr_number = '1600'
-        street_name = 'Pennsylvania Ave NW'
-        city = 'Washington'
-        state = 'DC'
-        zip = '20006'
-
-        # Test
-        rv = self.app.get('/standardize?address={}'.format(addr_str))
-        data = json.loads(rv.data)
-        status_code = rv.status_code
-
-        assert_equals(200, status_code)
-
-        assert_equals(data['input'], addr_str)
-
-        parts = data['parts']
-
-        # WARN: These asserts have the potential to fail if we retrain the parser
-        assert_equals(parts['addressNumber'], addr_number)
-        assert_equals(parts['streetName'], street_name)
-        assert_equals(parts['city'], city)
-        assert_equals(parts['state'], state)
-        assert_equals(parts['zip'], zip)
-
-
-    def test_standardize_fail_validation(self):
-        """
-        /standardize - 400 with incomplete address
-        """
-        # Setup
-        addr_str = '1600 Pennsylvania Ave NW Washington DC'
-
-        # Test
-        rv = self.app.get('/standardize?address={}'.format(addr_str))
-        data = json.loads(rv.data)
-        status_code = rv.status_code
-
-        assert_equals(400, rv.status_code)
-        assert_equals(400, data['statusCode'])
-        assert_equals("Parsed address does not include required address part(s): ['ZipCode']", data['error'])
+        assert_equals(400, resp.status_code)
+        assert_equals(400, resp_data['statusCode'])
+        assert_equals("'addresses' contained 4 elements, exceeding max of 3", resp_data['error'])
