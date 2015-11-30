@@ -176,8 +176,8 @@ This is considered an error, and returned with a `400` HTTP status.
 
 ```json
 {
-  error: "Could not parse out required address parts: ['state_name', 'zip_code']",
-  statusCode: 400
+  "error": "Could not parse out required address parts: ['state_name', 'zip_code']",
+  "statusCode": 400
 }
 ```
 
