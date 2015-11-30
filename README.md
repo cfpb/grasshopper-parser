@@ -75,11 +75,11 @@ The following resources are available.  All examples assume running on `localhos
 
 Displays the current state of the API.
 
-#### Request
+##### Request
 
     GET http://localhost:5000/
 
-#### Response
+##### Response
 
 ```json
 {
