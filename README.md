@@ -46,23 +46,52 @@ The service can also be run on Docker.
 
         docker run -ti -p 5000:5000 hmda/grasshopper-parser
 
-## Usage
+## Configuration
+
+Much of the parser's logic is maintained within [`rules.yaml`](https://github.com/cfpb/grasshopper-parser/blob/master/rules.yaml).
+This file is read once at startup.  If you wish to make changes, you will need to restart the API for
+the changes to take affect.
+
+`rules.yaml` is composed of the following sections:
+
+1. `address_parts`
+
+    Maps all address parts to their underlying data source.
+
+    1. `standard`
+
+        Maps [`usaddress`'s "components"](http://usaddress.readthedocs.org/en/latest/#details) to the 
+        parser's address "parts".  This is currently a one-to-one mapping, but may diverge from usaddress
+        in the future.  These are the default set of "parts" returned if no "profile" is given.
+
+    1. `derived`
+
+        Adds additional composite parts, made by joining multiple "parts" from the `standard` mapping.
+        These "parts" are only available when mapped to a given "profile".
+
+1. `profiles`
+
+    Provides additional address part processing, such as returning "derived" address parts, and validating
+    that a given address string can be parsed into the minimum "required" parts.
+
+## API Usage
 
 The following resources are available.  All examples assume running on `localhost`, port `5000`.
 
-### `/status`
+### `/` (root resource)
 
 Displays the current state of the API.
 
 #### Request
 
-    GET http://localhost:5000/status
+    GET http://localhost:5000/
 
 #### Response
 
 ```json
 {
     "host": "yourhost.local",
+    "service": "grasshopper-parser",
     "status": "OK",
     "time": "2015-05-06T19:14:19.304850+00:00",
     "upSince": "2015-05-06T19:08:26.568966+00:00"
@@ -71,46 +100,60 @@ Displays the current state of the API.
 
 ### `/parse`
 
-The `/parse` resource is the heart of this API.  It parses free-text address
-strings into their component parts. 
-
-This resource supports `GET` requests with the following query parameters:
+The `/parse` resource is the heart the API.  It parses free-text address
+strings into their component parts.  It supports `GET` requests for individual with the following query parameters:
 
 * **`address`:** Free-text address string to be parsed.
 
-* **`method`:** (Optional) [usaddress parsing method](http://usaddress.readthedocs.org/en/latest/#usage)
-    to be used to split `address` into its component parts.
+* **`profile`:** Additional parsing logic based on pre-defined "profiles"
 
-    Values:
-    * `parse` (Default)
-    * `tag`
+    The "grasshopper" profile is included by default.  It is geared towards the 
+    [grasshopper](https://github.com/cfpb/grasshopper) geocoder's parsing requirement.
+    Additional profiles can be added in [`rules.yaml`](https://github.com/cfpb/grasshopper-parser/blob/master/rules.yaml).
 
-* **`validate`:** (Optional) Validates whether the `address` string splits into
-    either too few parts to be considered complete, or contains parts we do not
-    allow (such as P.O. Box addresses).
+#### Single Parse
 
-    Values:
-    * `false` (Default)
-    * `true`
+##### Request
 
+    GET http://localhost:5000/parse?address=1600+Pennsylvania+Ave+NW+Washington+DC+20006
 
-#### Request
+##### Response
 
-    GET http://localhost:5000/parse?address=1311+30th+st+washington+dc+20007
-
-#### Response
+The `input` value will always be the address string provided in the request.
 
 ```json
 {
-  "input": "1311 30th st washington dc 20007",
-  "parts": {
-    "AddressNumber": "1311",
-    "PlaceName": "washington",
-    "StateName": "dc",
-    "StreetName": "30th",
-    "StreetNamePostType": "st",
-    "ZipCode": "20007"
-  }
+  "input": "1600 Pennsylvania Ave NW Washington DC 20006", 
+  "parts": [
+    {
+      "code": "address_number", 
+      "value": "1600"
+    }, 
+    {
+      "code": "street_name", 
+      "value": "Pennsylvania"
+    }, 
+    {
+      "code": "street_name_post_type", 
+      "value": "Ave"
+    }, 
+    {
+      "code": "street_name_post_directional", 
+      "value": "NW"
+    }, 
+    {
+      "code": "city_name", 
+      "value": "Washington"
+    }, 
+    {
+      "code": "state_name", 
+      "value": "DC"
+    }, 
+    {
+      "code": "zip_code", 
+      "value": "20006"
+    }
+  ]
 }
 ```
 
