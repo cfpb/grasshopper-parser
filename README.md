@@ -112,7 +112,7 @@ strings into their component parts.  It supports `GET` requests for individual w
     [grasshopper](https://github.com/cfpb/grasshopper) geocoder's parsing requirement.
     Additional profiles can be added in [`rules.yaml`](https://github.com/cfpb/grasshopper-parser/blob/master/rules.yaml).
 
-#### Single Address Parse
+#### Single address
 
 ##### Request
 
@@ -137,7 +137,7 @@ The `input` value will always be the address string provided in the request.
 }
 ```
 
-#### Single Address Parse with `profile`
+#### Single address with optional `profile`
 
 ##### Request
 
@@ -145,7 +145,7 @@ The `input` value will always be the address string provided in the request.
 
 ##### Response
 
-The `input` value will always be the address string provided in the request.
+Notice there are two additional "derived" parts at the end of the list.
 
 ```json
 {
@@ -160,6 +160,84 @@ The `input` value will always be the address string provided in the request.
     { "code": "zip_code", "value": "20006" }, 
     { "code": "address_number_full", "value": "1600" }, 
     { "code": "street_name_full", "value": "Pennsylvania Ave NW" }
+  ]
+}
+```
+
+#### Single _incomplete_ address with `profile`
+
+##### Request
+
+    GET http://localhost:5000/parse?address=1234+main+st&profile=grasshopper
+
+##### Response
+
+This is considered an error, and returned with a `400` HTTP status.
+
+```json
+{
+  error: "Could not parse out required address parts: ['state_name', 'zip_code']",
+  statusCode: 400
+}
+```
+
+#### Batch address parsing
+
+Batch parsing of up to 5000 addresses is also supported via HTTP POST.  The format is
+very similar to the URL structure using in parsing individual addresses.
+
+##### Request
+
+The following example contains a batch of 3 address strings, 2 good, 1 incomplete.
+
+    POST -H 'Content-Type: application/json' http://localhost:5000/parse
+
+```json
+{
+  "profile": "grasshopper", 
+  "addresses": [
+    "1600 Pennsylvania Ave NW Washington DC 20006", 
+    "1315 10th St Sacramento CA 95814", 
+    "1234 Main St"
+  ]
+}
+```
+
+##### Response
+
+```json
+{
+  "failed": [
+    "1234 Main St"
+  ],
+  "parsed": [
+    {
+      "input": "1600 Pennsylvania Ave NW Washington DC 20006",
+      "parts": [
+        { "code": "address_number", "value": "1600" },
+        { "code": "street_name", "value": "Pennsylvania" },
+        { "code": "street_name_post_type", "value": "Ave" },
+        { "code": "street_name_post_directional", "value": "NW" },
+        { "code": "city_name", "value": "Washington" },
+        { "code": "state_name", "value": "DC" },
+        { "code": "zip_code", "value": "20006" },
+        { "code": "address_number_full", "value": "1600" },
+        { "code": "street_name_full", "value": "Pennsylvania Ave NW" }
+      ]
+    },
+    {
+      "input": "1315 10th St Sacramento CA 95814",
+      "parts": [
+        { "code": "address_number", "value": "1315" },
+        { "code": "street_name", "value": "10th" },
+        { "code": "street_name_post_type", "value": "St" },
+        { "code": "city_name", "value": "Sacramento" },
+        { "code": "state_name", "value": "CA" },
+        { "code": "zip_code", "value": "95814" },
+        { "code": "address_number_full", "value": "1315" },
+        { "code": "street_name_full", "value": "10th St" }
+      ]
+    }
   ]
 }
 ```
