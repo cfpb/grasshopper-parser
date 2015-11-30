@@ -37,7 +37,7 @@ quite simple to build and launch.
 
 ### Docker
 
-The service can also be run as a Docker container.  See the
+The service can also be run as a [Docker](https://docs.docker.com/) container.  See the
 [`Dockerfile`](https://github.com/cfpb/grasshopper-parser/blob/master/Dockerfile) for details on the Docker image.
 
 1. Build it.
