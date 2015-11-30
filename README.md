@@ -3,8 +3,9 @@
 [![Build Status](https://travis-ci.org/cfpb/grasshopper-parser.svg)](https://travis-ci.org/cfpb/grasshopper-parser) 
 [![Coverage Status](https://coveralls.io/repos/cfpb/grasshopper-parser/badge.svg?branch=master)](https://coveralls.io/r/cfpb/grasshopper-parser?branch=master)
 
-US Address parser for the [Grasshopper](https://github.com/cfpb/grasshopper) project.
-Provides a simple microservice that breaks an address string into its components.
+Simple microservice for parsing US address strings into their component parts.  This project
+is used by the [Grasshopper](https://github.com/cfpb/grasshopper) geocoding service, but can
+also be used for general-purpose address parsing.
 
 ## Requirements
 
@@ -111,7 +112,7 @@ strings into their component parts.  It supports `GET` requests for individual w
     [grasshopper](https://github.com/cfpb/grasshopper) geocoder's parsing requirement.
     Additional profiles can be added in [`rules.yaml`](https://github.com/cfpb/grasshopper-parser/blob/master/rules.yaml).
 
-#### Single Parse
+#### Single Address Parse
 
 ##### Request
 
@@ -123,36 +124,42 @@ The `input` value will always be the address string provided in the request.
 
 ```json
 {
-  "input": "1600 Pennsylvania Ave NW Washington DC 20006", 
+  "input": "1600 Pennsylvania Ave NW Washington DC 20006",
   "parts": [
-    {
-      "code": "address_number", 
-      "value": "1600"
-    }, 
-    {
-      "code": "street_name", 
-      "value": "Pennsylvania"
-    }, 
-    {
-      "code": "street_name_post_type", 
-      "value": "Ave"
-    }, 
-    {
-      "code": "street_name_post_directional", 
-      "value": "NW"
-    }, 
-    {
-      "code": "city_name", 
-      "value": "Washington"
-    }, 
-    {
-      "code": "state_name", 
-      "value": "DC"
-    }, 
-    {
-      "code": "zip_code", 
-      "value": "20006"
-    }
+    { "code": "address_number", "value": "1600" }, 
+    { "code": "street_name", "value": "Pennsylvania" }, 
+    { "code": "street_name_post_type", "value": "Ave" }, 
+    { "code": "street_name_post_directional", "value": "NW" }, 
+    { "code": "city_name", "value": "Washington" }, 
+    { "code": "state_name", "value": "DC" }, 
+    { "code": "zip_code", "value": "20006" }
+  ]
+}
+```
+
+#### Single Address Parse with `profile`
+
+##### Request
+
+    GET http://localhost:5000/parse?address=1600+Pennsylvania+Ave+NW+Washington+DC+20006?profile=grasshopper
+
+##### Response
+
+The `input` value will always be the address string provided in the request.
+
+```json
+{
+  "input": "1600 Pennsylvania Ave NW Washington DC 20006",
+  "parts": [
+    { "code": "address_number", "value": "1600" }, 
+    { "code": "street_name", "value": "Pennsylvania" }, 
+    { "code": "street_name_post_type", "value": "Ave" }, 
+    { "code": "street_name_post_directional", "value": "NW" }, 
+    { "code": "city_name", "value": "Washington" }, 
+    { "code": "state_name", "value": "DC" }, 
+    { "code": "zip_code", "value": "20006" }, 
+    { "code": "address_number_full", "value": "1600" }, 
+    { "code": "street_name_full", "value": "Pennsylvania Ave NW" }
   ]
 }
 ```
