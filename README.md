@@ -55,24 +55,16 @@ the changes to take affect.
 
 `rules.yaml` is composed of the following sections:
 
-1. `address_parts`
+1. **`address_parts`** - Maps all address parts to their underlying data source.
 
-    Maps all address parts to their underlying data source.
-
-    1. `standard`
-
-        Maps [`usaddress`'s "components"](http://usaddress.readthedocs.org/en/latest/#details) to the 
+    1. **`standard`** - Maps [`usaddress`'s "components"](http://usaddress.readthedocs.org/en/latest/#details) to the 
         parser's address "parts".  This is currently a one-to-one mapping, but may diverge from usaddress
         in the future.  These are the default set of "parts" returned if no "profile" is given.
 
-    1. `derived`
-
-        Adds additional composite parts, made by joining multiple "parts" from the `standard` mapping.
+    1. **`derived`** - Adds additional composite parts, made by joining multiple "parts" from the `standard` mapping.
         These "parts" are only available when mapped to a given "profile".
 
-1. `profiles`
-
-    Provides additional address part processing, such as returning "derived" address parts, and validating
+1. **`profiles`** - Provides additional address part processing, such as returning "derived" address parts, and validating
     that a given address string can be parsed into the minimum "required" parts.
 
 ## API Usage
