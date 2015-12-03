@@ -3,8 +3,9 @@
 [![Build Status](https://travis-ci.org/cfpb/grasshopper-parser.svg)](https://travis-ci.org/cfpb/grasshopper-parser) 
 [![Coverage Status](https://coveralls.io/repos/cfpb/grasshopper-parser/badge.svg?branch=master)](https://coveralls.io/r/cfpb/grasshopper-parser?branch=master)
 
-US Address parser for the [Grasshopper](https://github.com/cfpb/grasshopper) project.
-Provides a simple microservice that breaks an address string into its components.
+Simple microservice for parsing US address strings into their component parts.  This project
+is used by the [Grasshopper](https://github.com/cfpb/grasshopper) geocoding service, but can
+also be used for general-purpose address parsing.
 
 ## Requirements
 
@@ -36,7 +37,8 @@ quite simple to build and launch.
 
 ### Docker
 
-The service can also be run on Docker.
+The service can also be run as a [Docker](https://docs.docker.com/) container.  See the
+[`Dockerfile`](https://github.com/cfpb/grasshopper-parser/blob/master/Dockerfile) for details on the Docker image.
 
 1. Build it.
 
@@ -46,23 +48,44 @@ The service can also be run on Docker.
 
         docker run -ti -p 5000:5000 hmda/grasshopper-parser
 
-## Usage
+## Configuration
+
+Much of the parser's logic is maintained within [`rules.yaml`](https://github.com/cfpb/grasshopper-parser/blob/master/rules.yaml).
+This file is read once at startup.  If you wish to make changes, you will need to restart the API for
+the changes to take affect.
+
+`rules.yaml` is composed of the following sections:
+
+1. **`address_parts`:** Maps all address parts to their underlying data source.
+
+    1. **`standard`:** Maps [`usaddress`'s "components"](http://usaddress.readthedocs.org/en/latest/#details) to the 
+        parser's address "parts".  This is currently a one-to-one mapping, but may diverge from usaddress
+        in the future.  These are the default set of "parts" returned if no "profile" is given.
+
+    1. **`derived`:** Adds additional composite parts, made by joining multiple "parts" from the `standard` mapping.
+        These "parts" are only available when mapped to a given "profile".
+
+1. **`profiles`:** Provides additional address part processing, such as returning "derived" address parts, and validating
+    that a given address string can be parsed into the minimum "required" parts.
+
+## API Usage
 
 The following resources are available.  All examples assume running on `localhost`, port `5000`.
 
-### `/status`
+### `/` (root resource)
 
 Displays the current state of the API.
 
-#### Request
+##### Request
 
-    GET http://localhost:5000/status
+    GET http://localhost:5000/
 
-#### Response
+##### Response
 
 ```json
 {
     "host": "yourhost.local",
+    "service": "grasshopper-parser",
     "status": "OK",
     "time": "2015-05-06T19:14:19.304850+00:00",
     "upSince": "2015-05-06T19:08:26.568966+00:00"
@@ -71,46 +94,144 @@ Displays the current state of the API.
 
 ### `/parse`
 
-The `/parse` resource is the heart of this API.  It parses free-text address
-strings into their component parts. 
-
-This resource supports `GET` requests with the following query parameters:
+The `/parse` resource is the heart the API.  It parses free-text address
+strings into their component parts.  It supports `GET` requests for individual with the following query parameters:
 
 * **`address`:** Free-text address string to be parsed.
 
-* **`method`:** (Optional) [usaddress parsing method](http://usaddress.readthedocs.org/en/latest/#usage)
-    to be used to split `address` into its component parts.
+* **`profile`:** Additional parsing logic based on pre-defined "profiles"
 
-    Values:
-    * `parse` (Default)
-    * `tag`
+    The "grasshopper" profile is included by default.  It is geared towards the 
+    [grasshopper](https://github.com/cfpb/grasshopper) geocoder's parsing requirement.
+    Additional profiles can be added in [`rules.yaml`](https://github.com/cfpb/grasshopper-parser/blob/master/rules.yaml).
 
-* **`validate`:** (Optional) Validates whether the `address` string splits into
-    either too few parts to be considered complete, or contains parts we do not
-    allow (such as P.O. Box addresses).
+#### Single address
 
-    Values:
-    * `false` (Default)
-    * `true`
+##### Request
 
+    GET http://localhost:5000/parse?address=1600+Pennsylvania+Ave+NW+Washington+DC+20006
 
-#### Request
+##### Response
 
-    GET http://localhost:5000/parse?address=1311+30th+st+washington+dc+20007
-
-#### Response
+The `input` value will always be the address string provided in the request.
 
 ```json
 {
-  "input": "1311 30th st washington dc 20007",
-  "parts": {
-    "AddressNumber": "1311",
-    "PlaceName": "washington",
-    "StateName": "dc",
-    "StreetName": "30th",
-    "StreetNamePostType": "st",
-    "ZipCode": "20007"
-  }
+  "input": "1600 Pennsylvania Ave NW Washington DC 20006",
+  "parts": [
+    { "code": "address_number", "value": "1600" }, 
+    { "code": "street_name", "value": "Pennsylvania" }, 
+    { "code": "street_name_post_type", "value": "Ave" }, 
+    { "code": "street_name_post_directional", "value": "NW" }, 
+    { "code": "city_name", "value": "Washington" }, 
+    { "code": "state_name", "value": "DC" }, 
+    { "code": "zip_code", "value": "20006" }
+  ]
+}
+```
+
+#### Single address with optional `profile`
+
+##### Request
+
+    GET http://localhost:5000/parse?address=1600+Pennsylvania+Ave+NW+Washington+DC+20006?profile=grasshopper
+
+##### Response
+
+Notice there are two additional "derived" parts at the end of the list.
+
+```json
+{
+  "input": "1600 Pennsylvania Ave NW Washington DC 20006",
+  "parts": [
+    { "code": "address_number", "value": "1600" }, 
+    { "code": "street_name", "value": "Pennsylvania" }, 
+    { "code": "street_name_post_type", "value": "Ave" }, 
+    { "code": "street_name_post_directional", "value": "NW" }, 
+    { "code": "city_name", "value": "Washington" }, 
+    { "code": "state_name", "value": "DC" }, 
+    { "code": "zip_code", "value": "20006" }, 
+    { "code": "address_number_full", "value": "1600" }, 
+    { "code": "street_name_full", "value": "Pennsylvania Ave NW" }
+  ]
+}
+```
+
+#### Single _incomplete_ address with `profile`
+
+##### Request
+
+    GET http://localhost:5000/parse?address=1234+main+st&profile=grasshopper
+
+##### Response
+
+This is considered an error, and returned with a `400` HTTP status.
+
+```json
+{
+  "error": "Could not parse out required address parts: ['state_name', 'zip_code']",
+  "statusCode": 400
+}
+```
+
+#### Batch address parsing
+
+Batch parsing of up to 5000 addresses is also supported via HTTP POST.  The format is
+very similar to the URL structure using in parsing individual addresses.
+
+##### Request
+
+The following example contains a batch of 3 address strings, 2 good, 1 incomplete.
+
+    POST -H 'Content-Type: application/json' http://localhost:5000/parse
+
+```json
+{
+  "profile": "grasshopper", 
+  "addresses": [
+    "1600 Pennsylvania Ave NW Washington DC 20006", 
+    "1315 10th St Sacramento CA 95814", 
+    "1234 Main St"
+  ]
+}
+```
+
+##### Response
+
+```json
+{
+  "failed": [
+    "1234 Main St"
+  ],
+  "parsed": [
+    {
+      "input": "1600 Pennsylvania Ave NW Washington DC 20006",
+      "parts": [
+        { "code": "address_number", "value": "1600" },
+        { "code": "street_name", "value": "Pennsylvania" },
+        { "code": "street_name_post_type", "value": "Ave" },
+        { "code": "street_name_post_directional", "value": "NW" },
+        { "code": "city_name", "value": "Washington" },
+        { "code": "state_name", "value": "DC" },
+        { "code": "zip_code", "value": "20006" },
+        { "code": "address_number_full", "value": "1600" },
+        { "code": "street_name_full", "value": "Pennsylvania Ave NW" }
+      ]
+    },
+    {
+      "input": "1315 10th St Sacramento CA 95814",
+      "parts": [
+        { "code": "address_number", "value": "1315" },
+        { "code": "street_name", "value": "10th" },
+        { "code": "street_name_post_type", "value": "St" },
+        { "code": "city_name", "value": "Sacramento" },
+        { "code": "state_name", "value": "CA" },
+        { "code": "zip_code", "value": "95814" },
+        { "code": "address_number_full", "value": "1315" },
+        { "code": "street_name_full", "value": "10th St" }
+      ]
+    }
+  ]
 }
 ```
 

@@ -5,123 +5,123 @@ address_parts:
   standard:
     - id: &address_number address_number
       usaddress: AddressNumber
-      description: 'address number'
+      description: 'The address number, e.g. "1234" Main St.'
   
     - id: &address_number_prefix address_number_prefix
       usaddress: AddressNumberPrefix
-      description: 'a modifier before an address number, e.g. "Mile", "#"'
+      description: 'A modifier before an address number, e.g. "Mile", "#"'
   
     - id: &address_number_suffix address_number_suffix
       usaddress: AddressNumberSuffix
-      description: 'a modifier after an address number, e.g "B", "1/2"'
+      description: 'A modifier after an address number, e.g "B", "1/2"'
   
     - id: &building_name building_name
       usaddress: BuildingName
-      description: 'the name of a building, e.g. "Atlanta Financial Center"'
+      description: 'The name of a building, e.g. "Atlanta Financial Center"'
   
     - id: &corner_of corner_of
       usaddress: CornerOf
-      description: 'words indicating that an address is a corner, e.g. "Junction", "corner of"'
+      description: 'Words indicating that an address is a corner, e.g. "Junction", "corner of"'
   
     - id: &intersection_separator intersection_separator
       usaddress: IntersectionSeparator
-      description: 'a conjunction connecting parts of an intersection, e.g. "and", "&"'
+      description: 'A conjunction connecting parts of an intersection, e.g. "and", "&"'
   
     - id: &landmark_name landmark_name
       usaddress: LandmarkName
-      description: 'the name of a landmark, e.g. "Wrigley Field", "Union Station"'
+      description: 'The name of a landmark, e.g. "Wrigley Field", "Union Station"'
   
     - id: &not_address not_address
       usaddress: NotAddress
-      description: "a non-address component that doesn't refer to a recipient"
+      description: "A non-address component that doesn't refer to a recipient"
   
     - id: &occupancy_type occupancy_type
       usaddress: OccupancyType
-      description: 'a type of occupancy within a building, e.g. "Suite", "Apt", "Floor"'
+      description: 'A type of occupancy within a building, e.g. "Suite", "Apt", "Floor"'
   
     - id: &occupancy_id occupancy_id
       usaddress: OccupancyIdentifier
-      description: 'the identifier of an occupancy, often a number or letter'
+      description: 'The identifier of an occupancy, often a number or letter'
   
     - id: &city_name city_name
       usaddress: PlaceName
-      description: 'city'
+      description: 'The name of the city'
   
     - id: &recipient recipient
       usaddress: Recipient
-      description: 'a non-address recipient, e.g. the name of a person/organization'
+      description: 'A non-address recipient, e.g. the name of a person/organization'
   
     - id: &state_name state_name
       usaddress: StateName
-      description: 'state'
+      description: 'The name of the state'
  
     - id: &street_name street_name
       usaddress: StreetName
-      description: 'street name, excluding type & direction'
+      description: 'The street name, excluding type & direction'
   
     - id: &street_name_pre_directional street_name_pre_directional
       usaddress: StreetNamePreDirectional
-      description: 'a direction before a street name, e.g. "North", "S"'
+      description: 'A direction before a street name, e.g. "North", "S"'
   
     - id: &street_name_pre_modifier street_name_pre_modifier
       usaddress: StreetNamePreModifier
-      description: 'a modifier before a street name that is not a direction, e.g. "Old"'
+      description: 'A modifier before a street name that is not a direction, e.g. "Old"'
   
     - id: &street_name_pre_type street_name_pre_type
       usaddress: StreetNamePreType
-      description: 'a street type that comes before a street name, e.g. "Route", "Ave"'
+      description: 'A street type that comes before a street name, e.g. "Route", "Ave"'
   
     - id: &street_name_post_directional street_name_post_directional
       usaddress: StreetNamePostDirectional
-      description: 'a direction after a street name, e.g. "North", "S"'
+      description: 'A direction after a street name, e.g. "North", "S"'
   
     - id: &street_name_post_modifier street_name_post_modifier
       usaddress: StreetNamePostModifier
-      description: 'a modifier adter a street name, e.g. "Ext"'
+      description: 'A modifier adter a street name, e.g. "Ext"'
   
     - id: &street_name_post_type street_name_post_type
       usaddress: StreetNamePostType
-      description: 'a street type that comes after a street name, e.g. "Avenue", "Rd"'
+      description: 'A street type that comes after a street name, e.g. "Avenue", "Rd"'
   
     - id: &subaddress_id subaddress_id
       usaddress: SubaddressIdentifier
-      description: 'the name/identifier of a subaddress component'
+      description: 'The name/identifier of a subaddress component'
   
     - id: &subaddress_type subaddress_type
       usaddress: SubaddressType
-      description: 'a level of detail in an address that is not an occupancy within a building, e.g. "Building", "Tower"'
+      description: 'A level of detail in an address that is not an occupancy within a building, e.g. "Building", "Tower"'
   
     - id: &usps_box_group_id usps_box_group_id
       usaddress: USPSBoxGroupID
-      description: 'the identifier of a USPS box group, usually a number'
+      description: 'The identifier of a USPS box group, usually a number'
   
     - id: &usps_box_group_type usps_box_group_type
       usaddress: USPSBoxGroupType
-      description: 'a name for a group of USPS boxes, e.g. "R"'
+      description: 'A name for a group of USPS boxes, e.g. "R"'
   
     - id: &postal_box_id postal_box_id
       usaddress: USPSBoxID
-      description: 'the identifier of a USPS box, usually a number'
+      description: 'The identifier of a USPS box, usually a number'
   
     - id: &usps_box_type usps_box_type
       usaddress: USPSBoxType
-      description: 'a USPS box, e.g. "P.O. Box"'
+      description: 'A USPS box, e.g. "P.O. Box"'
   
     - id: &zip_code zip_code
       usaddress: ZipCode
-      description: 'zip code'
+      description: 'The zip code'
 
   # Alternate address parts made up of multiple "standard" parts
   derived:
     - id: &address_number_full address_number_full
-      description: 'combination of all parts for a street address e.g. no "city", "state", "zip"'
+      description: 'All address number parts combined, e.g. "123 1/2", "12 B"'
       parts:
         - *address_number_prefix
         - *address_number
         - *address_number_suffix
 
     - id: &street_name_full street_name_full
-      description: 'a modifier adter a street name, e.g. "Ext"'
+      description: 'All address name parts combined, e.g. "Pennsylvania Ave NW"'
       parts:
         - *street_name_pre_directional
         - *street_name_pre_modifier
